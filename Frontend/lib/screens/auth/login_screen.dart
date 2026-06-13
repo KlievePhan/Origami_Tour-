@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../shell/shell_screen.dart';
 import 'recover_password_screen.dart';
 import 'register_screen.dart';
 
@@ -63,15 +64,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _openRegister() {
-    Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const RegisterScreen()));
   }
 
   void _openRecoverPassword() {
     Navigator.of(context).push<void>(
       MaterialPageRoute(builder: (_) => const RecoverPasswordScreen()),
     );
+  }
+
+  void _openMainMenu() {
+    Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const ShellScreen()));
   }
 
   @override
@@ -93,6 +100,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       const _Branding(),
                       const SizedBox(height: 32),
                       _buildCard(context),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: _openMainMenu,
+                        child: Text(
+                          'Continue to main menu',
+                          style: TextStyle(
+                            color: const Color(0xFF011D86),
+                            fontSize: 14,
+                            fontFamily: 'Work Sans',
+                            fontWeight: FontWeight.w500,
+                            height: 1.43,
+                            letterSpacing: 0.10,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -111,9 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         shadows: const [
           BoxShadow(
             color: Color(0x0C24389C),
@@ -208,11 +228,14 @@ class _LoginScreenState extends State<LoginScreen> {
               onFieldSubmitted: (_) => _submitLogin(),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: const Color(0xFF757684),
                   size: 20,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
                 tooltip: _obscurePassword ? 'Show password' : 'Hide password',
               ),
             ),
@@ -225,13 +248,17 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             const _OrDivider(),
             const SizedBox(height: 16),
-            _GoogleSignInButton(onPressed: () => _notifyPending('Google sign-in')),
+            _GoogleSignInButton(
+              onPressed: () => _notifyPending('Google sign-in'),
+            ),
             const SizedBox(height: 24),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(top: 24),
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(width: 1, color: Color(0xFFEDEEEF))),
+                border: Border(
+                  top: BorderSide(width: 1, color: Color(0xFFEDEEEF)),
+                ),
               ),
               child: Center(
                 child: Wrap(
@@ -286,10 +313,20 @@ class _Branding extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: ShapeDecoration(
             color: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             shadows: const [
-              BoxShadow(color: Color(0x0C24389C), blurRadius: 6, offset: Offset(0, 4)),
-              BoxShadow(color: Color(0x1424389C), blurRadius: 3, offset: Offset(0, 1)),
+              BoxShadow(
+                color: Color(0x0C24389C),
+                blurRadius: 6,
+                offset: Offset(0, 4),
+              ),
+              BoxShadow(
+                color: Color(0x1424389C),
+                blurRadius: 3,
+                offset: Offset(0, 1),
+              ),
             ],
           ),
           // TODO(agent): swap for the real brand mark once an asset is provided
@@ -304,7 +341,10 @@ class _Branding extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [const Color(0xFF011D86), const Color(0x00011D86)],
+                        colors: [
+                          const Color(0xFF011D86),
+                          const Color(0x00011D86),
+                        ],
                       ),
                     ),
                   ),
@@ -321,14 +361,20 @@ class _Branding extends StatelessWidget {
                     decoration: ShapeDecoration(
                       color: const Color(0xFFE9E7F0),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(9999)),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(9999),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
               const Center(
-                child: Icon(Icons.auto_awesome_mosaic_outlined, color: Color(0xFF011D86), size: 28),
+                child: Icon(
+                  Icons.auto_awesome_mosaic_outlined,
+                  color: Color(0xFF011D86),
+                  size: 28,
+                ),
               ),
             ],
           ),
@@ -383,7 +429,9 @@ class _BackgroundDecoration extends StatelessWidget {
                 height: 320,
                 decoration: ShapeDecoration(
                   color: const Color(0x0C011D86),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                 ),
               ),
             ),
@@ -490,7 +538,10 @@ class _AuthTextField extends StatelessWidget {
         ),
         filled: true,
         fillColor: const Color(0xFFFBF8FF),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -536,14 +587,19 @@ class _PrimaryButton extends StatelessWidget {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFF011D86),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 2,
         ),
         child: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Colors.white,
+                ),
               )
             : Text(
                 label,
@@ -607,7 +663,9 @@ class _GoogleSignInButton extends StatelessWidget {
           foregroundColor: const Color(0xFF1A1B21),
           side: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

@@ -27,7 +27,10 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
 
   final _emailFormKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _otpControllers = List.generate(_otpLength, (_) => TextEditingController());
+  final _otpControllers = List.generate(
+    _otpLength,
+    (_) => TextEditingController(),
+  );
   final _otpFocusNodes = List.generate(_otpLength, (_) => FocusNode());
 
   Timer? _cooldownTimer;
@@ -262,8 +265,16 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
-          BoxShadow(color: Color(0x19000000), blurRadius: 6, offset: Offset(0, 4)),
-          BoxShadow(color: Color(0x19000000), blurRadius: 15, offset: Offset(0, 10)),
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 6,
+            offset: Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Color(0x19000000),
+            blurRadius: 15,
+            offset: Offset(0, 10),
+          ),
         ],
       ),
       child: Column(
@@ -302,21 +313,36 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                             fontWeight: FontWeight.w400,
                             letterSpacing: 0.25,
                           ),
-                          prefixIcon: const Icon(Icons.mail_outline, color: Color(0xFF757684)),
+                          prefixIcon: const Icon(
+                            Icons.mail_outline,
+                            color: Color(0xFF757684),
+                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17.5),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 17.5,
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
+                            borderSide: const BorderSide(
+                              width: 1,
+                              color: Color(0xFFC5C5D4),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
+                            borderSide: const BorderSide(
+                              width: 1,
+                              color: Color(0xFFC5C5D4),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(width: 2, color: Color(0xFF011D86)),
+                            borderSide: const BorderSide(
+                              width: 2,
+                              color: Color(0xFF011D86),
+                            ),
                           ),
                         ),
                       ),
@@ -326,18 +352,26 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: (_isSendingOtp || (_otpSent && _cooldownSeconds > 0)) ? null : _sendOtp,
+                    onPressed:
+                        (_isSendingOtp || (_otpSent && _cooldownSeconds > 0))
+                        ? null
+                        : _sendOtp,
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF795901),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: Text(
                       _isSendingOtp
                           ? 'Sending…'
                           : _otpSent
-                              ? 'Resend OTP'
-                              : 'Send OTP',
+                          ? 'Resend OTP'
+                          : 'Send OTP',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 14,
@@ -360,13 +394,15 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
             children: [
               for (var i = 0; i < _otpLength; i++) ...[
                 if (i > 0) const SizedBox(width: 8),
-                Expanded(child: _OtpDigitField(
-                  controller: _otpControllers[i],
-                  focusNode: _otpFocusNodes[i],
-                  enabled: _otpSent,
-                  hasError: _otpError != null,
-                  onChanged: (value) => _onOtpDigitChanged(i, value),
-                )),
+                Expanded(
+                  child: _OtpDigitField(
+                    controller: _otpControllers[i],
+                    focusNode: _otpFocusNodes[i],
+                    enabled: _otpSent,
+                    hasError: _otpError != null,
+                    onChanged: (value) => _onOtpDigitChanged(i, value),
+                  ),
+                ),
               ],
             ],
           ),
@@ -422,7 +458,8 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                               height: 1.45,
                               letterSpacing: 0.50,
                             ),
-                            recognizer: TapGestureRecognizer()..onTap = _isSendingOtp ? null : _sendOtp,
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = _isSendingOtp ? null : _sendOtp,
                           ),
                       ],
                     ),
@@ -439,14 +476,19 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                 backgroundColor: const Color(0xFF011D86),
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: const Color(0xFF011D86),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9999)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(9999),
+                ),
                 elevation: 3,
               ),
               child: _isVerifying
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
                     )
                   : Text(
                       'Verify',
@@ -482,7 +524,13 @@ class _RecoveryIllustration extends StatelessWidget {
       decoration: ShapeDecoration(
         color: const Color(0xFFF4F2FC),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1))],
+        shadows: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -502,7 +550,11 @@ class _RecoveryIllustration extends StatelessWidget {
           ),
           // TODO(agent): swap for the real illustration from assets/illustrations/
           // once provided; this icon stands in for the Figma placeholder image.
-          const Icon(Icons.mark_email_read_outlined, size: 72, color: Color(0xFF011D86)),
+          const Icon(
+            Icons.mark_email_read_outlined,
+            size: 72,
+            color: Color(0xFF011D86),
+          ),
         ],
       ),
     );
@@ -553,7 +605,9 @@ class _OtpDigitField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = hasError ? const Color(0xFFBA1A1A) : const Color(0xFFC5C5D4);
+    final borderColor = hasError
+        ? const Color(0xFFBA1A1A)
+        : const Color(0xFFC5C5D4);
     return AspectRatio(
       aspectRatio: 1,
       child: TextField(

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Program Files\\S8_FPTU\\origami_tour1\\Backend\\Backend.csproj": {}
+    "D:\\Program Files\\S8_FPTU\\origami_tour\\Backend\\Backend.csproj": {}
   },
   "projects": {
-    "D:\\Program Files\\S8_FPTU\\origami_tour1\\Backend\\Backend.csproj": {
+    "D:\\Program Files\\S8_FPTU\\origami_tour\\Backend\\Backend.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Program Files\\S8_FPTU\\origami_tour1\\Backend\\Backend.csproj",
+        "projectUniqueName": "D:\\Program Files\\S8_FPTU\\origami_tour\\Backend\\Backend.csproj",
         "projectName": "Backend",
-        "projectPath": "D:\\Program Files\\S8_FPTU\\origami_tour1\\Backend\\Backend.csproj",
+        "projectPath": "D:\\Program Files\\S8_FPTU\\origami_tour\\Backend\\Backend.csproj",
         "packagesPath": "C:\\Users\\HP\\.nuget\\packages\\",
-        "outputPath": "D:\\Program Files\\S8_FPTU\\origami_tour1\\Backend\\obj\\",
+        "outputPath": "D:\\Program Files\\S8_FPTU\\origami_tour\\Backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -50,6 +50,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[8.0.2, )"
+            },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",

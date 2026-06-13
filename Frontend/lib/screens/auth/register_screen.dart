@@ -68,7 +68,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = value ?? '';
     if (password.isEmpty) return 'Create a password';
     if (password.length < 8) return 'Use at least 8 characters';
-    if (!RegExp(r'[A-Z]').hasMatch(password)) return 'Add at least one uppercase letter';
+    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+      return 'Add at least one uppercase letter';
+    }
     if (!RegExp(r'[0-9]').hasMatch(password)) return 'Add at least one number';
     return null;
   }
@@ -79,7 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
-  _PasswordStrength get _passwordStrength => _PasswordStrength.of(_passwordController.text);
+  _PasswordStrength get _passwordStrength =>
+      _PasswordStrength.of(_passwordController.text);
 
   Future<void> _submitRegister() async {
     final formValid = _formKey.currentState?.validate() ?? false;
@@ -168,8 +171,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         color: const Color(0xFFFBF8FF),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         shadows: const [
-          BoxShadow(color: Color(0x0A24389C), blurRadius: 4, offset: Offset(0, 2)),
-          BoxShadow(color: Color(0x1424389C), blurRadius: 12, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x0A24389C),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+          BoxShadow(
+            color: Color(0x1424389C),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: Form(
@@ -207,7 +218,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               validator: _validatePassword,
               suffixIcon: _VisibilityToggle(
                 obscured: _obscurePassword,
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
             const SizedBox(height: 8),
@@ -224,7 +236,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               onFieldSubmitted: (_) => _submitRegister(),
               suffixIcon: _VisibilityToggle(
                 obscured: _obscureConfirmPassword,
-                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                onPressed: () => setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -307,7 +321,11 @@ class _HeroBanner extends StatelessWidget {
         child: Stack(
           children: [
             const Center(
-              child: Icon(Icons.auto_awesome_mosaic_outlined, color: Colors.white24, size: 64),
+              child: Icon(
+                Icons.auto_awesome_mosaic_outlined,
+                color: Colors.white24,
+                size: 64,
+              ),
             ),
             Positioned.fill(
               child: DecoratedBox(
@@ -352,28 +370,28 @@ class _PerksRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return IntrinsicHeight(
       child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: const [
-        Expanded(
-          child: _PerkCard(
-            backgroundColor: Color(0xFFFDD274),
-            titleColor: Color(0xFF775800),
-            bodyColor: Color(0xFF775800),
-            title: 'Daily Tutorials',
-            body: 'Learn new folds daily.',
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: const [
+          Expanded(
+            child: _PerkCard(
+              backgroundColor: Color(0xFFFDD274),
+              titleColor: Color(0xFF775800),
+              bodyColor: Color(0xFF775800),
+              title: 'Daily Tutorials',
+              body: 'Learn new folds daily.',
+            ),
           ),
-        ),
-        SizedBox(width: 16),
-        Expanded(
-          child: _PerkCard(
-            backgroundColor: Color(0xFF004C43),
-            titleColor: Color(0xFF7EBBAF),
-            bodyColor: Color(0xFF7EBBAF),
-            title: 'Mastery Levels',
-            body: 'Track your progress.',
+          SizedBox(width: 16),
+          Expanded(
+            child: _PerkCard(
+              backgroundColor: Color(0xFF004C43),
+              titleColor: Color(0xFF7EBBAF),
+              bodyColor: Color(0xFF7EBBAF),
+              title: 'Mastery Levels',
+              body: 'Track your progress.',
+            ),
           ),
-        ),
-      ],
+        ],
       ),
     );
   }
@@ -402,7 +420,13 @@ class _PerkCard extends StatelessWidget {
       decoration: ShapeDecoration(
         color: backgroundColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        shadows: const [BoxShadow(color: Color(0x0C000000), blurRadius: 2, offset: Offset(0, 1))],
+        shadows: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 2,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,7 +534,10 @@ class _AuthTextField extends StatelessWidget {
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -559,7 +586,13 @@ class _VisibilityToggle extends StatelessWidget {
 enum _PasswordStrengthLevel { empty, weak, medium, strong }
 
 class _PasswordStrength {
-  const _PasswordStrength(this.level, this.label, this.helper, this.color, this.fraction);
+  const _PasswordStrength(
+    this.level,
+    this.label,
+    this.helper,
+    this.color,
+    this.fraction,
+  );
 
   final _PasswordStrengthLevel level;
   final String label;
@@ -581,30 +614,32 @@ class _PasswordStrength {
     if (password.length >= 8) score++;
     if (RegExp(r'[A-Z]').hasMatch(password)) score++;
     if (RegExp(r'[0-9]').hasMatch(password)) score++;
-    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password) && password.length >= 12) score++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(password) && password.length >= 12) {
+      score++;
+    }
 
     return switch (score) {
       <= 1 => const _PasswordStrength(
-          _PasswordStrengthLevel.weak,
-          'Weak',
-          'At least 8 chars, 1 uppercase, 1 number',
-          Color(0xFFBA1A1A),
-          0.25,
-        ),
+        _PasswordStrengthLevel.weak,
+        'Weak',
+        'At least 8 chars, 1 uppercase, 1 number',
+        Color(0xFFBA1A1A),
+        0.25,
+      ),
       2 => const _PasswordStrength(
-          _PasswordStrengthLevel.medium,
-          'Medium',
-          'Add a number or an uppercase letter',
-          Color(0xFF785900),
-          0.6,
-        ),
+        _PasswordStrengthLevel.medium,
+        'Medium',
+        'Add a number or an uppercase letter',
+        Color(0xFF785900),
+        0.6,
+      ),
       _ => const _PasswordStrength(
-          _PasswordStrengthLevel.strong,
-          'Strong',
-          'Looks good!',
-          Color(0xFF004C43),
-          1.0,
-        ),
+        _PasswordStrengthLevel.strong,
+        'Strong',
+        'Looks good!',
+        Color(0xFF004C43),
+        1.0,
+      ),
     };
   }
 }
@@ -714,7 +749,9 @@ class _TermsCheckbox extends StatelessWidget {
                 onChanged: (checked) => onChanged(checked ?? false),
                 activeColor: const Color(0xFF011D86),
                 side: const BorderSide(width: 1, color: Color(0xFF757684)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -725,7 +762,10 @@ class _TermsCheckbox extends StatelessWidget {
                 child: Text.rich(
                   TextSpan(
                     children: [
-                      const TextSpan(text: 'I agree to the ', style: _bodyStyle),
+                      const TextSpan(
+                        text: 'I agree to the ',
+                        style: _bodyStyle,
+                      ),
                       TextSpan(
                         text: 'Terms of Service',
                         style: _linkStyle,
@@ -735,7 +775,8 @@ class _TermsCheckbox extends StatelessWidget {
                       TextSpan(
                         text: 'Privacy Policy',
                         style: _linkStyle,
-                        recognizer: TapGestureRecognizer()..onTap = onPrivacyTap,
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = onPrivacyTap,
                       ),
                       const TextSpan(text: '.', style: _bodyStyle),
                     ],
@@ -787,14 +828,19 @@ class _PrimaryButton extends StatelessWidget {
           foregroundColor: Colors.white,
           disabledBackgroundColor: const Color(0xFF011D86),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 2,
         ),
         child: isLoading
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Colors.white,
+                ),
               )
             : Text(
                 label,

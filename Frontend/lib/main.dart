@@ -22,7 +22,6 @@ class OrigamiTourApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),
       ),
-      // TODO(agent): replace with go_router (CLAUDE.md §8) once the route
       // table, auth gating and bottom-nav shell are implemented. For now the
       // app boots straight to Splash -> Login.
       home: const SplashScreen(),

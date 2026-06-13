@@ -21,7 +21,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   static const _displayDuration = Duration(seconds: 7);
   static const _introDuration = Duration(milliseconds: 900);
 
@@ -34,7 +35,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _introController = AnimationController(vsync: this, duration: _introDuration);
+    _introController = AnimationController(
+      vsync: this,
+      duration: _introDuration,
+    );
     _fade = CurvedAnimation(parent: _introController, curve: Curves.easeOut);
     _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _introController, curve: Curves.easeOutBack),
@@ -52,9 +56,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   void _goToLogin() {
     if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
   }
 
   @override
@@ -119,7 +123,11 @@ class _BrandMark extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: const [
-          BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, 10)),
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 20,
+            offset: Offset(0, 10),
+          ),
         ],
       ),
       child: Center(
