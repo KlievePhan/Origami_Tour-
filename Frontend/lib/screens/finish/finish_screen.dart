@@ -12,11 +12,16 @@ import '../profile/profile_screen.dart';
 /// screen is not dismissible by back gesture. Visual design (colors, type,
 /// spacing, shape) is unchanged.
 class FinishScreen extends StatelessWidget {
-  const FinishScreen({super.key, this.modelTitle});
+  const FinishScreen({super.key, this.modelTitle, this.modelThumbnailUrl});
 
   /// Title of the model that was just completed. Falls back to the
   /// placeholder session result's title when not provided.
   final String? modelTitle;
+
+  /// Thumbnail of the model that was just completed, shown in the
+  /// "Refined Precision" achievement showcase. Falls back to the
+  /// placeholder session result's image when not provided.
+  final String? modelThumbnailUrl;
 
   // TODO(agent): replace with the SessionResult passed from
   // FoldingSessionProvider.finish() (prov-folding-session is not_started yet).
@@ -25,7 +30,7 @@ class FinishScreen extends StatelessWidget {
     elapsedTime: '14:22',
     expGained: 120,
     achievementName: 'Refined Precision',
-    achievementImageUrl: 'https://placehold.co/350x350',
+    achievementImageUrl: 'https://placehold.co/350x350.png',
     rankTitle: 'Mastery Level 4',
     nextRankTitle: 'Next: Origami Master (Lv. 5)',
     currentExp: 2880,
@@ -77,7 +82,8 @@ class FinishScreen extends StatelessWidget {
                         const SizedBox(height: 24),
                         _AchievementShowcase(
                           name: _result.achievementName,
-                          imageUrl: _result.achievementImageUrl,
+                          imageUrl:
+                              modelThumbnailUrl ?? _result.achievementImageUrl,
                         ),
                         const SizedBox(height: 24),
                         _MasteryProgressCard(

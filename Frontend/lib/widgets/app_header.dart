@@ -85,7 +85,7 @@ class _Avatar extends StatelessWidget {
               ],
             ),
             child: Image.network(
-              'https://placehold.co/36x36',
+              'https://placehold.co/36x36.png',
               fit: BoxFit.cover,
             ),
           ),

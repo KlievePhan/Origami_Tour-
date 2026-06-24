@@ -1,0 +1,83 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../models/user_profile.dart';
+import '../sources/auth_remote_source.dart';
+
+/// Result of a successful login/register call.
+class AuthSession {
+  const AuthSession({
+    required this.token,
+    required this.userId,
+    required this.displayName,
+    required this.email,
+  });
+
+  final String token;
+  final String userId;
+  final String displayName;
+  final String email;
+
+  factory AuthSession.fromJson(Map<String, dynamic> json) {
+    return AuthSession(
+      token: json['token'] as String,
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      email: json['email'] as String,
+    );
+  }
+}
+
+/// Owns the signed-in session: talks to [AuthRemoteSource] and persists the
+/// JWT in the platform secure store (Keychain/Keystore) so it survives app
+/// restarts without living in plaintext `shared_preferences`.
+class AuthRepository {
+  AuthRepository({AuthRemoteSource? remoteSource, FlutterSecureStorage? storage})
+    : _remote = remoteSource ?? AuthRemoteSource(),
+      _storage = storage ?? const FlutterSecureStorage();
+
+  static const _tokenKey = 'auth_token';
+
+  final AuthRemoteSource _remote;
+  final FlutterSecureStorage _storage;
+
+  Future<AuthSession> register({
+    required String displayName,
+    required String email,
+    required String password,
+  }) async {
+    final json = await _remote.register(
+      displayName: displayName,
+      email: email,
+      password: password,
+    );
+    final session = AuthSession.fromJson(json);
+    await _storage.write(key: _tokenKey, value: session.token);
+    return session;
+  }
+
+  Future<AuthSession> login({
+    required String email,
+    required String password,
+  }) async {
+    final json = await _remote.login(email: email, password: password);
+    final session = AuthSession.fromJson(json);
+    await _storage.write(key: _tokenKey, value: session.token);
+    return session;
+  }
+
+  Future<void> logout() => _storage.delete(key: _tokenKey);
+
+  /// Restores the current user's profile from a previously stored token, or
+  /// `null` if there is no token / it has expired.
+  Future<UserProfile?> restoreSession() async {
+    final token = await _storage.read(key: _tokenKey);
+    if (token == null) return null;
+    try {
+      final json = await _remote.me(token);
+      return UserProfile.fromJson(json);
+    } on Exception {
+      await logout();
+      return null;
+    }
+  }
+}

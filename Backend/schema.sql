@@ -257,10 +257,9 @@ CREATE UNIQUE INDEX IX_UserAchievements_UserId_AchievementId ON UserAchievements
 SET IDENTITY_INSERT Categories ON;
 INSERT INTO Categories (Id, Name, Slug) VALUES
     (1, N'Animals',   N'animals'),
-    (2, N'Birds',     N'birds'),
+    (2, N'Modular',     N'modular'),
     (3, N'Flowers',   N'flowers'),
-    (4, N'Dinosaurs', N'dinosaurs'),
-    (5, N'Abstract',  N'abstract');
+    (4, N'Objects', N'objects'),
 SET IDENTITY_INSERT Categories OFF;
 
 SET IDENTITY_INSERT LevelDefinitions ON;

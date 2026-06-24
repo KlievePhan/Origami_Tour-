@@ -46,7 +46,11 @@ class ModelDetailsScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
-                  _HeroImage(imageUrl: model.thumbnail),
+                  _HeroImage(
+                    imageUrl: model.heroUrl.isNotEmpty
+                        ? model.heroUrl
+                        : model.thumbnail,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     model.name,

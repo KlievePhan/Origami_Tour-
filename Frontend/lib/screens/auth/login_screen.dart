@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../shell/shell_screen.dart';
 import 'recover_password_screen.dart';
 import 'register_screen.dart';
@@ -23,6 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _obscurePassword = true;
   bool _isSubmitting = false;
+  String? _loginError;
 
   @override
   void dispose() {
@@ -42,19 +45,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) return 'Enter your password';
-    return null;
+    // Surfaces the server's "Incorrect email or password" error inline,
+    // beneath the field, instead of as a snackbar.
+    return _loginError;
   }
 
   Future<void> _submitLogin() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _isSubmitting = true);
-    // TODO(agent): wire to AuthProvider.login (prov-auth is not_started yet).
-    // On success, go_router's auth redirect should send the user to
-    // /home/collection per CLAUDE.md §8/§9-A.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    setState(() {
+      _isSubmitting = true;
+      _loginError = null;
+    });
+    final error = await context.read<AuthProvider>().login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
-    _notifyPending('Login');
+    setState(() {
+      _isSubmitting = false;
+      _loginError = error;
+    });
+    if (error == null) {
+      _goToShellAfterLogin();
+    } else {
+      _formKey.currentState?.validate();
+    }
+  }
+
+  /// Successful login replaces this screen so the back gesture can't return
+  /// to it (unlike `_openMainMenu`, the "Continue to main menu" dev bypass).
+  void _goToShellAfterLogin() {
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const ShellScreen()));
   }
 
   void _notifyPending(String feature) {

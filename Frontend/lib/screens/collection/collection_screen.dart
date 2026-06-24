@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../data/repositories/model_repository.dart';
 import '../../models/origami_model.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/main_bottom_nav_bar.dart';
@@ -9,12 +10,9 @@ import '../model_details/model_details_screen.dart';
 ///
 /// UI ported from the Figma export; restructured into a real screen widget
 /// with a working search field, filter chips, an overall-progress banner, and
-/// a model grid. Per the spec (README §4) each card now reflects the
-/// viewer's relationship to that model:
-///  - **completed** — "Completed … ago"
-///  - **in progress** — current resume step ("Step X of Y") + a mini progress bar
-///  - **locked** — models the user hasn't unlocked/accessed yet (dimmed, lock badge)
-/// Visual design (colors, type, spacing, shape) is unchanged.
+/// a model grid. Models (including diagram/thumbnail URLs and fold steps)
+/// are loaded from the Backend ASP.NET Core API via [ModelRepository]
+/// (`GET /api/models`).
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({super.key});
 
@@ -24,84 +22,47 @@ class CollectionScreen extends StatefulWidget {
 
 class _CollectionScreenState extends State<CollectionScreen> {
   final _searchController = TextEditingController();
+  final _repository = ModelRepository();
 
   static const _difficulties = ['Easy', 'Medium', 'Hard'];
-  static const _categories = ['Animals', 'Birds', 'Modular', 'Holiday'];
 
   String? _selectedDifficulty;
   String? _selectedCategory;
+  String _searchQuery = '';
 
-  // TODO(agent): replace with CollectionProvider.models + per-model
-  // completion/progress overlay (prov-collection is not_started yet).
-  static const _models = <_CollectionModel>[
-    _CollectionModel(
-      title: 'Traditional Crane',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'EASY',
-      difficultyBg: Color(0xFFDCFCE7),
-      difficultyFg: Color(0xFF166534),
-      estimatedTime: '5m',
-      status: _ModelStatus.completed,
-      statusLabel: 'Completed 2d ago',
-    ),
-    _CollectionModel(
-      title: 'Curious Fox',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'MEDIUM',
-      difficultyBg: Color(0xFFFEF3C7),
-      difficultyFg: Color(0xFF92400E),
-      estimatedTime: '15m',
-      status: _ModelStatus.completed,
-      statusLabel: 'Completed 1w ago',
-    ),
-    _CollectionModel(
-      title: 'Monarch Butterfly',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'EASY',
-      difficultyBg: Color(0xFFDCFCE7),
-      difficultyFg: Color(0xFF166534),
-      estimatedTime: '8m',
-      status: _ModelStatus.inProgress,
-      currentStep: 7,
-      totalSteps: 15,
-    ),
-    _CollectionModel(
-      title: 'Imperial Dragon',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'HARD',
-      difficultyBg: Color(0xFFFEE2E2),
-      difficultyFg: Color(0xFF991B1B),
-      estimatedTime: '45m',
-      status: _ModelStatus.inProgress,
-      currentStep: 3,
-      totalSteps: 20,
-    ),
-    _CollectionModel(
-      title: 'Celestial Phoenix',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'HARD',
-      difficultyBg: Color(0xFFFEE2E2),
-      difficultyFg: Color(0xFF991B1B),
-      estimatedTime: '60m',
-      status: _ModelStatus.locked,
-      statusLabel: 'Finish 3 more Hard models to unlock',
-    ),
-    _CollectionModel(
-      title: 'Sacred Lotus',
-      imageUrl: 'https://placehold.co/169x169',
-      difficultyLabel: 'MEDIUM',
-      difficultyBg: Color(0xFFFEF3C7),
-      difficultyFg: Color(0xFF92400E),
-      estimatedTime: '25m',
-      status: _ModelStatus.locked,
-      statusLabel: 'Reach Lv.5 to unlock',
-    ),
-  ];
+  List<OrigamiModel>? _models;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    _loadModels();
+  }
 
   @override
   void dispose() {
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text.trim().toLowerCase();
+    });
+  }
+
+  Future<void> _loadModels() async {
+    setState(() => _error = null);
+    try {
+      final models = await _repository.getModels();
+      if (!mounted) return;
+      setState(() => _models = models);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+    }
   }
 
   void _toggleDifficulty(String label) {
@@ -116,6 +77,36 @@ class _CollectionScreenState extends State<CollectionScreen> {
     );
   }
 
+  /// Distinct categories present in the loaded models, used to build the
+  /// category filter chips (the API may seed different categories than the
+  /// original Figma placeholders).
+  List<String> get _categories {
+    final categories = (_models ?? const <OrigamiModel>[])
+        .map((m) => m.category)
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList();
+    categories.sort();
+    return categories;
+  }
+
+  List<OrigamiModel> get _filteredModels {
+    return (_models ?? const <OrigamiModel>[]).where((model) {
+      if (_selectedDifficulty != null &&
+          model.difficulty.label != _selectedDifficulty) {
+        return false;
+      }
+      if (_selectedCategory != null && model.category != _selectedCategory) {
+        return false;
+      }
+      if (_searchQuery.isNotEmpty &&
+          !model.name.toLowerCase().contains(_searchQuery)) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -125,64 +116,145 @@ class _CollectionScreenState extends State<CollectionScreen> {
         child: Column(
           children: [
             const AppHeader(),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  _SearchBar(controller: _searchController),
-                  const SizedBox(height: 16),
-                  _FilterChipsRow(
-                    options: _difficulties,
-                    selected: _selectedDifficulty,
-                    onSelected: _toggleDifficulty,
-                  ),
-                  const SizedBox(height: 12),
-                  _FilterChipsRow(
-                    options: _categories,
-                    selected: _selectedCategory,
-                    onSelected: _toggleCategory,
-                    pill: true,
-                  ),
-                  const SizedBox(height: 24),
-                  const _OverallProgressCard(finished: 12, total: 48),
-                  const SizedBox(height: 24),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _models.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.72,
-                        ),
-                    itemBuilder: (context, index) =>
-                        _ModelGridCard(model: _models[index]),
-                  ),
-                  const SizedBox(height: 24),
-                  const Opacity(
-                    opacity: 0.40,
-                    child: Center(
-                      child: Text(
-                        'Scroll to discover more models',
-                        style: TextStyle(
-                          color: Color(0xFF1A1B21),
-                          fontSize: 16,
-                          fontFamily: 'Work Sans',
-                          fontWeight: FontWeight.w400,
-                          height: 1.50,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
       bottomNavigationBar: const MainBottomNavBar(current: MainTab.collection),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_error != null) {
+      return _ErrorState(onRetry: _loadModels);
+    }
+    if (_models == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final filtered = _filteredModels;
+    final categories = _categories;
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        _SearchBar(controller: _searchController),
+        const SizedBox(height: 16),
+        _FilterChipsRow(
+          options: _difficulties,
+          selected: _selectedDifficulty,
+          onSelected: _toggleDifficulty,
+        ),
+        if (categories.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _FilterChipsRow(
+            options: categories,
+            selected: _selectedCategory,
+            onSelected: _toggleCategory,
+            pill: true,
+          ),
+        ],
+        const SizedBox(height: 24),
+        _OverallProgressCard(finished: 0, total: _models!.length),
+        const SizedBox(height: 24),
+        if (filtered.isEmpty)
+          const _EmptyState()
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filtered.length,
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.72,
+                ),
+            itemBuilder: (context, index) =>
+                _ModelGridCard(model: _CollectionModel(filtered[index])),
+          ),
+        const SizedBox(height: 24),
+        const Opacity(
+          opacity: 0.40,
+          child: Center(
+            child: Text(
+              'Scroll to discover more models',
+              style: TextStyle(
+                color: Color(0xFF1A1B21),
+                fontSize: 16,
+                fontFamily: 'Work Sans',
+                fontWeight: FontWeight.w400,
+                height: 1.50,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Shown when [ModelRepository.getModels] fails (e.g. the Backend API isn't
+/// reachable at the configured base URL).
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.cloud_off,
+              size: 40,
+              color: Color(0xFF757684),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Couldn't load models from the server.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF454652),
+                fontSize: 16,
+                fontFamily: 'Work Sans',
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when no model matches the active search/filters.
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 48),
+      child: Center(
+        child: Text(
+          'No models match your search or filters.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF757684),
+            fontSize: 16,
+            fontFamily: 'Work Sans',
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -419,12 +491,6 @@ class _ModelGridCard extends StatelessWidget {
   final _CollectionModel model;
 
   void _handleTap(BuildContext context) {
-    if (model.status == _ModelStatus.locked) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(model.statusLabel)));
-      return;
-    }
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ModelDetailsScreen(
@@ -439,8 +505,6 @@ class _ModelGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locked = model.status == _ModelStatus.locked;
-
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => _handleTap(context),
@@ -475,19 +539,16 @@ class _ModelGridCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ColorFiltered(
-                    colorFilter: locked
-                        ? const ColorFilter.mode(
-                            Colors.black54,
-                            BlendMode.saturation,
-                          )
-                        : const ColorFilter.mode(
-                            Colors.transparent,
-                            BlendMode.multiply,
-                          ),
-                    child: Opacity(
-                      opacity: locked ? 0.45 : 1,
-                      child: Image.network(model.imageUrl, fit: BoxFit.cover),
+                  Image.network(
+                    model.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: const Color(0xFFEFEDF6),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.broken_image_outlined,
+                        color: Color(0xFF757684),
+                      ),
                     ),
                   ),
                   Positioned(
@@ -553,12 +614,6 @@ class _ModelGridCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (locked)
-                    const Positioned.fill(
-                      child: Center(
-                        child: Icon(Icons.lock, color: Colors.white, size: 28),
-                      ),
-                    ),
                 ],
               ),
             ),
@@ -594,7 +649,7 @@ class _ModelGridCard extends StatelessWidget {
 }
 
 /// Renders the per-model status: a "Completed … ago" caption, an in-progress
-/// step counter with a mini progress bar, or a locked hint — per the
+/// step counter with a mini progress bar, or a "not started" hint — per the
 /// Collection screen's "individual in-progress status bar" requirement
 /// (README §4).
 class _ModelStatusArea extends StatelessWidget {
@@ -665,7 +720,7 @@ class _ModelStatusArea extends StatelessWidget {
             ],
           ),
         );
-      case _ModelStatus.locked:
+      case _ModelStatus.notStarted:
         return Align(
           alignment: Alignment.bottomLeft,
           child: Row(
@@ -673,7 +728,7 @@ class _ModelStatusArea extends StatelessWidget {
             spacing: 4,
             children: [
               const Icon(
-                Icons.lock_outline,
+                Icons.play_circle_outline,
                 size: 14,
                 color: Color(0xFF757684),
               ),
@@ -698,64 +753,47 @@ class _ModelStatusArea extends StatelessWidget {
   }
 }
 
-enum _ModelStatus { completed, inProgress, locked }
+enum _ModelStatus { completed, inProgress, notStarted }
 
+/// Display-ready wrapper around an [OrigamiModel] fetched from the API.
+///
+/// Per-model progress (`completed` / `inProgress`) isn't available from the
+/// catalog endpoint — `UserModelProgress` is out of scope for the current
+/// API — so every card currently renders as "not started".
 class _CollectionModel {
-  const _CollectionModel({
-    required this.title,
-    required this.imageUrl,
-    required this.difficultyLabel,
-    required this.difficultyBg,
-    required this.difficultyFg,
-    required this.estimatedTime,
-    required this.status,
-    this.statusLabel = '',
-    this.currentStep,
-    this.totalSteps,
-  });
+  _CollectionModel(this.model);
 
-  final String title;
-  final String imageUrl;
-  final String difficultyLabel;
-  final Color difficultyBg;
-  final Color difficultyFg;
-  final String estimatedTime;
-  final _ModelStatus status;
+  final OrigamiModel model;
 
-  /// Caption for completed/locked cards (e.g. "Completed 2d ago").
-  final String statusLabel;
+  String get title => model.name;
+  String get imageUrl => model.thumbnail;
+  String get estimatedTime => '${model.estimatedMinutes}m';
+  String get difficultyLabel => model.difficulty.label.toUpperCase();
+  Color get difficultyBg => _difficultyColors(model.difficulty).bg;
+  Color get difficultyFg => _difficultyColors(model.difficulty).fg;
 
-  /// Resume point for in-progress cards (e.g. 7 of 15).
-  final int? currentStep;
-  final int? totalSteps;
+  _ModelStatus get status => _ModelStatus.notStarted;
+  String get statusLabel => 'Not started yet';
+  int? get currentStep => null;
+  int? get totalSteps => null;
+  double? get progress => null;
 
-  double? get progress =>
-      (currentStep != null && totalSteps != null && totalSteps! > 0)
-      ? currentStep! / totalSteps!
-      : null;
+  OrigamiModel toOrigamiModel() => model;
+}
 
-  /// Builds an [OrigamiModel] for the Model Details / Process View screens
-  /// from this card's display data (placeholder steps; see CLAUDE.md §6).
-  OrigamiModel toOrigamiModel() {
-    final difficulty = switch (difficultyLabel) {
-      'EASY' => Difficulty.easy,
-      'MEDIUM' => Difficulty.medium,
-      'HARD' => Difficulty.hard,
-      _ => Difficulty.medium,
-    };
-    final minutes =
-        int.tryParse(estimatedTime.replaceAll(RegExp(r'[^0-9]'), '')) ?? 10;
-    return OrigamiModel.placeholder(
-      id: title,
-      name: title,
-      thumbnail: imageUrl,
-      difficulty: difficulty,
-      estimatedMinutes: minutes,
-      totalSteps: totalSteps ?? 12,
-      description:
-          'A traditional origami project. Follow each fold carefully to '
-          'bring $title to life.',
-      category: 'Models',
-    );
-  }
+({Color bg, Color fg}) _difficultyColors(Difficulty difficulty) {
+  return switch (difficulty) {
+    Difficulty.easy => (
+      bg: const Color(0xFFDCFCE7),
+      fg: const Color(0xFF166534),
+    ),
+    Difficulty.medium => (
+      bg: const Color(0xFFFEF3C7),
+      fg: const Color(0xFF92400E),
+    ),
+    Difficulty.hard => (
+      bg: const Color(0xFFFEE2E2),
+      fg: const Color(0xFF991B1B),
+    ),
+  };
 }

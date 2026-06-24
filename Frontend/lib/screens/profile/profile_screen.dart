@@ -162,7 +162,7 @@ class _ProfileAvatarStack extends StatelessWidget {
                   ),
                 ),
                 child: Image.network(
-                  'https://placehold.co/97x97',
+                  'https://placehold.co/97x97.png',
                   fit: BoxFit.cover,
                 ),
               ),

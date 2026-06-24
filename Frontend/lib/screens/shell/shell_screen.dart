@@ -51,7 +51,7 @@ class _FeaturedMasterpieceCard extends StatelessWidget {
   static final _model = OrigamiModel.placeholder(
     id: 'golden-dragon',
     name: 'The Golden Dragon',
-    thumbnail: 'https://placehold.co/334x188',
+    thumbnail: 'https://placehold.co/334x188.png',
     difficulty: Difficulty.hard,
     estimatedMinutes: 90,
     totalSteps: 25,
@@ -134,7 +134,7 @@ class _FeaturedMasterpieceCard extends StatelessWidget {
                 height: 188,
                 color: const Color(0xFFEFEDF6),
                 child: Image.network(
-                  'https://placehold.co/334x188',
+                  'https://placehold.co/334x188.png',
                   fit: BoxFit.cover,
                 ),
               ),
@@ -157,7 +157,7 @@ class _ContinueSection extends StatelessWidget {
       children: [
         Expanded(
           child: _ContinueCard(
-            imageUrl: 'https://placehold.co/149x149',
+            imageUrl: 'https://placehold.co/149x149.png',
             levelLabel: 'Level 1',
             levelBackground: Color(0xCC011D86),
             levelForeground: Colors.white,
@@ -167,7 +167,7 @@ class _ContinueSection extends StatelessWidget {
         ),
         Expanded(
           child: _ContinueCard(
-            imageUrl: 'https://placehold.co/149x149',
+            imageUrl: 'https://placehold.co/149x149.png',
             levelLabel: 'Level 3',
             levelBackground: Color(0xFFFDD274),
             levelForeground: Color(0xFF775800),

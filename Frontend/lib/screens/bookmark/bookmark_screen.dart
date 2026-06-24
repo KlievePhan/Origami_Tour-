@@ -28,7 +28,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
   static final List<_BookmarkItem> _favorites = [
     const _BookmarkItem(
       title: 'Celestial Dragon',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'EXPERT',
       difficultyColor: Color(0xE5011D86),
       estimatedTime: '45 min',
@@ -36,7 +36,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
     ),
     const _BookmarkItem(
       title: 'Monarch Flutter',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'BEGINNER',
       difficultyColor: Color(0xFF795901),
       estimatedTime: '12 min',
@@ -44,7 +44,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
     ),
     const _BookmarkItem(
       title: 'Sacred Lotus',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'INTERMEDIATE',
       difficultyColor: Color(0xB2011D86),
       estimatedTime: '25 min',
@@ -55,7 +55,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
   static final List<_InProgressItem> _inProgress = [
     const _InProgressItem(
       title: 'Celestial Dragon',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'EXPERT',
       difficultyColor: Color(0xE5011D86),
       estimatedTime: '45 min',
@@ -66,7 +66,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
     ),
     const _InProgressItem(
       title: 'Monarch Flutter',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'BEGINNER',
       difficultyColor: Color(0xFF795901),
       estimatedTime: '12 min',
@@ -77,7 +77,7 @@ class _BookmarkScreenState extends State<BookmarkScreen>
     ),
     const _InProgressItem(
       title: 'Sacred Lotus',
-      imageUrl: 'https://placehold.co/356x192',
+      imageUrl: 'https://placehold.co/356x192.png',
       difficultyLabel: 'INTERMEDIATE',
       difficultyColor: Color(0xB2011D86),
       estimatedTime: '25 min',

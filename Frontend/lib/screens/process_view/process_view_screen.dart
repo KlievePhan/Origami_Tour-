@@ -87,7 +87,10 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
   void _finishTutorial() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => FinishScreen(modelTitle: widget.model.name),
+        builder: (_) => FinishScreen(
+          modelTitle: widget.model.name,
+          modelThumbnailUrl: widget.model.thumbnail,
+        ),
       ),
     );
   }
@@ -370,36 +373,19 @@ class _DiagramCard extends StatelessWidget {
               ),
             ),
           ),
-          Center(
-            child: Transform.rotate(
-              angle: 0.79,
-              child: Container(
-                width: 220,
-                height: 220,
-                clipBehavior: Clip.antiAlias,
-                decoration: ShapeDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  shape: RoundedRectangleBorder(
-                    side: const BorderSide(width: 1, color: Color(0x19011D86)),
+          Positioned.fill(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: const BoxDecoration(color: Color(0xFFEEF2FF)),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: Color(0xFF757684),
                   ),
-                  shadows: const [
-                    BoxShadow(
-                      color: Color(0x19000000),
-                      blurRadius: 6,
-                      offset: Offset(0, 4),
-                      spreadRadius: -4,
-                    ),
-                    BoxShadow(
-                      color: Color(0x19000000),
-                      blurRadius: 15,
-                      offset: Offset(0, 10),
-                      spreadRadius: -3,
-                    ),
-                  ],
-                ),
-                child: Opacity(
-                  opacity: 0.80,
-                  child: Image.network(imageUrl, fit: BoxFit.fill),
                 ),
               ),
             ),

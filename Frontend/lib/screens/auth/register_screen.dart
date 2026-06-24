@@ -1,6 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
+import '../shell/shell_screen.dart';
 import 'login_screen.dart';
 
 /// Register screen (`/register`).
@@ -28,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _agreedToTerms = false;
   bool _showTermsError = false;
   bool _isSubmitting = false;
+  String? _emailError;
 
   @override
   void initState() {
@@ -60,7 +64,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
       return 'Enter a valid email address';
     }
-    return null;
+    // Surfaces the server's "email already registered" error inline.
+    return _emailError;
   }
 
   // Validation rules per CLAUDE.md §11: ≥ 8 chars, ≥ 1 uppercase, ≥ 1 number.
@@ -89,14 +94,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _showTermsError = !_agreedToTerms);
     if (!formValid || !_agreedToTerms) return;
 
-    setState(() => _isSubmitting = true);
-    // TODO(agent): wire to AuthProvider.register (prov-auth is not_started yet).
-    // Per CLAUDE.md §9-A, a successful register should auto sign-in and
-    // redirect to /home/collection.
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    setState(() {
+      _isSubmitting = true;
+      _emailError = null;
+    });
+    final error = await context.read<AuthProvider>().register(
+      displayName: _fullNameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
-    _notifyPending('Registration');
+    setState(() {
+      _isSubmitting = false;
+      _emailError = error;
+    });
+    if (error == null) {
+      // Per CLAUDE.md §9-A, a successful register auto signs in and
+      // replaces this screen (and Login beneath it) with the main shell.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const ShellScreen()),
+        (route) => false,
+      );
+    } else {
+      _formKey.currentState?.validate();
+    }
   }
 
   void _notifyPending(String feature) {

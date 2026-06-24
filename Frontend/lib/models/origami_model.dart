@@ -1,3 +1,4 @@
+import '../core/api_config.dart';
 import 'fold_step.dart';
 
 /// Relative folding difficulty of an [OrigamiModel] (CLAUDE.md §6).
@@ -9,6 +10,15 @@ enum Difficulty {
   const Difficulty(this.label);
 
   final String label;
+
+  /// Matches the `Difficulty` enum values returned by the API
+  /// (`Easy` | `Medium` | `Hard`).
+  static Difficulty fromApiLabel(String label) {
+    return Difficulty.values.firstWhere(
+      (d) => d.label == label,
+      orElse: () => Difficulty.medium,
+    );
+  }
 }
 
 /// An origami model and its folding tutorial (CLAUDE.md §6).
@@ -23,6 +33,7 @@ class OrigamiModel {
     required this.estimatedMinutes,
     required this.steps,
     this.author = 'Origami Tour',
+    this.heroUrl = '',
     this.paperSize = '15cm x 15cm',
     this.ratingAvg = 4.5,
     this.ratingCount = 0,
@@ -33,6 +44,10 @@ class OrigamiModel {
   final String name;
   final String author;
   final String thumbnail;
+
+  /// Larger hero image for the Model Details screen. Falls back to
+  /// [thumbnail] when empty (e.g. for placeholder models).
+  final String heroUrl;
   final String paperSize;
   final String description;
   final String category;
@@ -42,6 +57,33 @@ class OrigamiModel {
   final double ratingAvg;
   final int ratingCount;
   final int completionCount;
+
+  /// Builds an [OrigamiModel] from an `OrigamiModelDto` returned by
+  /// `GET /api/models` (`Backend/DTOs/OrigamiModelDto.cs`).
+  factory OrigamiModel.fromJson(Map<String, dynamic> json) {
+    final categories = (json['categories'] as List<dynamic>? ?? const [])
+        .map((c) => c.toString())
+        .toList();
+    final thumbnailUrl = resolveAssetUrl(json['thumbnailUrl'] as String? ?? '');
+    return OrigamiModel(
+      id: '${json['id']}',
+      name: json['name'] as String? ?? '',
+      author: json['author'] as String? ?? 'Origami Tour',
+      thumbnail: thumbnailUrl,
+      heroUrl: resolveAssetUrl(json['heroUrl'] as String? ?? ''),
+      paperSize: json['paperSize'] as String? ?? '15cm x 15cm',
+      description: json['description'] as String? ?? '',
+      category: categories.isNotEmpty ? categories.first : '',
+      difficulty: Difficulty.fromApiLabel(json['difficulty'] as String? ?? ''),
+      estimatedMinutes: json['estimatedMinutes'] as int? ?? 0,
+      ratingAvg: (json['ratingAvg'] as num?)?.toDouble() ?? 0,
+      ratingCount: json['ratingCount'] as int? ?? 0,
+      completionCount: json['completionCount'] as int? ?? 0,
+      steps: (json['steps'] as List<dynamic>? ?? const [])
+          .map((s) => FoldStep.fromJson(s as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 
   /// Builds a model with a generated set of placeholder folding steps.
   ///
@@ -77,7 +119,7 @@ class OrigamiModel {
         final foldType = FoldType.values[i % (FoldType.values.length - 1)];
         return FoldStep(
           index: i + 1,
-          diagramAsset: 'https://placehold.co/362x362',
+          diagramAsset: 'https://placehold.co/362x362.png',
           foldType: foldType,
           instruction:
               'Step ${i + 1}: perform a ${foldType.label.toLowerCase()} '

@@ -1,19 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../auth/login_screen.dart';
+import '../shell/shell_screen.dart';
 
 /// Splash screen shown while the app boots.
 ///
 /// Styled from the "Craft-Tech" / "Paper-on-Paper" brand tokens in
 /// `.agent/Design.md` (indigo-structural `#24389C`, amber-energy `#FDC003`,
-/// Plus Jakarta Sans / Work Sans). Holds for [_displayDuration] then routes
-/// to Login.
+/// Plus Jakarta Sans / Work Sans). Holds for at least [_displayDuration]
+/// while [AuthProvider.restoreSession] checks for a saved session, then
+/// routes to Login (no session) or the Shell (session restored).
 ///
-/// TODO(agent): once `AuthProvider` (prov-auth) and routing (`go_router`,
-/// CLAUDE.md §8) exist, replace the fixed timer + hard navigation with a
-/// real bootstrap (restore session, then redirect via the router's auth gate).
+/// TODO(agent): once routing (`go_router`, CLAUDE.md §8) exists, replace this
+/// hard navigation with a real auth-gated redirect.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -29,6 +32,7 @@ class _SplashScreenState extends State<SplashScreen>
   late final AnimationController _introController;
   late final Animation<double> _fade;
   late final Animation<double> _scale;
+  late final Future<void> _restoreSessionFuture;
 
   Timer? _navigationTimer;
 
@@ -44,7 +48,8 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _introController, curve: Curves.easeOutBack),
     );
     _introController.forward();
-    _navigationTimer = Timer(_displayDuration, _goToLogin);
+    _restoreSessionFuture = context.read<AuthProvider>().restoreSession();
+    _navigationTimer = Timer(_displayDuration, _navigateNext);
   }
 
   @override
@@ -54,11 +59,17 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _goToLogin() {
+  Future<void> _navigateNext() async {
+    await _restoreSessionFuture;
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    final isAuthenticated =
+        context.read<AuthProvider>().status == AuthStatus.authenticated;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) =>
+            isAuthenticated ? const ShellScreen() : const LoginScreen(),
+      ),
+    );
   }
 
   @override
