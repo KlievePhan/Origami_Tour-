@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
+import '../providers/bookmark_provider.dart';
 import '../screens/auth/login_screen.dart';
 
 /// Wraps an avatar with a dropdown menu offering "Settings" and "Logout"
@@ -31,6 +34,10 @@ class AccountMenuButton extends StatelessWidget {
     );
 
     if (shouldLogout != true || !context.mounted) return;
+
+    await context.read<AuthProvider>().logout();
+    if (!context.mounted) return;
+    context.read<BookmarkProvider>().clear();
 
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),

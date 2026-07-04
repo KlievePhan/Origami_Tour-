@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/main_bottom_nav_bar.dart';
+import '../../widgets/user_avatar.dart';
 
 /// Profile & achievements screen (`/home/profile`).
 ///
@@ -50,6 +53,7 @@ class _ProfileSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -70,16 +74,28 @@ class _ProfileSummaryCard extends StatelessWidget {
       child: Column(
         spacing: 12,
         children: [
-          const _ProfileAvatarStack(),
-          const Text(
-            'Crane Apprentice · Lv.4',
+          _ProfileAvatarStack(avatarUrl: user?.avatarUrl),
+          Text(
+            user?.displayName ?? 'Guest',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: Color(0xFF011D86),
               fontSize: 22,
               fontFamily: 'Plus Jakarta Sans',
               fontWeight: FontWeight.w600,
               height: 1.27,
+            ),
+          ),
+          const Text(
+            'Crane Apprentice · Lv.4',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF454652),
+              fontSize: 14,
+              fontFamily: 'Work Sans',
+              fontWeight: FontWeight.w500,
+              height: 1.43,
+              letterSpacing: 0.25,
             ),
           ),
           const Text(
@@ -119,7 +135,9 @@ class _ProfileSummaryCard extends StatelessWidget {
 /// Decorative "paper-on-paper" avatar: two overlapping rotated squares with
 /// the user's photo on top, evoking folded origami sheets.
 class _ProfileAvatarStack extends StatelessWidget {
-  const _ProfileAvatarStack();
+  const _ProfileAvatarStack({this.avatarUrl});
+
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +179,7 @@ class _ProfileAvatarStack extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Image.network(
-                  'https://placehold.co/97x97.png',
-                  fit: BoxFit.cover,
-                ),
+                child: UserAvatar(avatarUrl: avatarUrl, size: 92),
               ),
             ),
           ),

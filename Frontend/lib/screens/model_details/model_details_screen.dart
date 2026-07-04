@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/origami_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../process_view/process_view_screen.dart';
 
 /// Model Details screen (`/model/:id`).
@@ -41,7 +43,7 @@ class ModelDetailsScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            const _Header(),
+            _Header(model: model),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -94,12 +96,17 @@ class ModelDetailsScreen extends StatelessWidget {
   }
 }
 
-/// App bar: back button, screen title, and a bookmark toggle (UI only).
+/// App bar: back button, screen title, and a favorite toggle backed by
+/// [BookmarkProvider].
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.model});
+
+  final OrigamiModel model;
 
   @override
   Widget build(BuildContext context) {
+    final isFavorite = context.watch<BookmarkProvider>().isFavorite(model.id);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -132,20 +139,13 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  const SnackBar(
-                    content: Text('Bookmarking is not wired up yet.'),
-                  ),
-                );
-            },
-            icon: const Icon(
-              Icons.bookmark_add_outlined,
-              color: Color(0xFF24389C),
+            onPressed: () =>
+                context.read<BookmarkProvider>().toggleFavorite(model),
+            icon: Icon(
+              isFavorite ? Icons.bookmark : Icons.bookmark_add_outlined,
+              color: const Color(0xFF24389C),
             ),
-            tooltip: 'Bookmark',
+            tooltip: isFavorite ? 'Remove bookmark' : 'Bookmark',
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/bookmark_provider.dart';
 import '../shell/shell_screen.dart';
 import 'login_screen.dart';
 
@@ -111,6 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (error == null) {
       // Per CLAUDE.md §9-A, a successful register auto signs in and
       // replaces this screen (and Login beneath it) with the main shell.
+      context.read<BookmarkProvider>().load();
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const ShellScreen()),
         (route) => false,

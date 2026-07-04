@@ -2,7 +2,12 @@
     <application
         android:label="origami_tour"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
+        <!-- The Backend API is plain http:// (Backend/Properties/launchSettings.json),
+             and Android 9+ blocks cleartext traffic by default. Fine for a dev build
+             talking to a local backend; tighten with a network_security_config before
+             shipping if the API stays on http. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

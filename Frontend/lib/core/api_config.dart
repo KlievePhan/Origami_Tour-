@@ -1,16 +1,13 @@
-import 'dart:io';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 /// Base URL of the Backend ASP.NET Core API for the current run target.
 ///
 /// Matches the `http` profile in `Backend/Properties/launchSettings.json`
-/// (`http://localhost:5116`). The Android emulator can't reach the host's
-/// `localhost` directly — `10.0.2.2` is its alias for the host machine.
+/// (`http://localhost:5116`). Always `localhost` — including on Android —
+/// rather than the AVD emulator's `10.0.2.2` alias, because that alias only
+/// resolves on the virtual emulator NAT and breaks on a real phone. Instead,
+/// run `adb reverse tcp:5116 tcp:5116` once per USB connection so the
+/// device's own `localhost:5116` transparently forwards to the host's; this
+/// works for both the emulator and a physical device with one code path.
 String get apiBaseUrl {
-  if (!kIsWeb && Platform.isAndroid) {
-    return 'http://10.0.2.2:5116';
-  }
   return 'http://localhost:5116';
 }
 

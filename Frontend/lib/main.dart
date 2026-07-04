@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
+import 'providers/bookmark_provider.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() {
@@ -14,7 +15,10 @@ class OrigamiTourApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => BookmarkProvider()),
+      ],
       child: MaterialApp(
         title: 'Origami Tour',
         debugShowCheckedModeBanner: false,

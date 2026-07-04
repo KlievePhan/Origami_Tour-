@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/fold_step.dart';
 import '../../models/origami_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../finish/finish_screen.dart';
 
 /// Process View / step-by-step tutorial screen (`/model/:id/fold`).
@@ -11,8 +13,8 @@ import '../finish/finish_screen.dart';
 /// Previous/Next navigation. "Finish Tutorial" on the last step opens
 /// [FinishScreen] (CLAUDE.md §10, screen #8). Per CLAUDE.md §9-B this screen
 /// also offers:
-///  - a **bookmark** button in the header that saves/marks the current step
-///    so the model resumes here from the Bookmark "In Progress" tab
+///  - a **bookmark** button in the header that favorites the model (shared
+///    with [ModelDetailsScreen]'s favorite toggle, via [BookmarkProvider])
 ///  - **Cancel** ("X") → confirmation dialog → auto-saves the current step →
 ///    returns to the previous screen
 class ProcessViewScreen extends StatefulWidget {
@@ -29,7 +31,6 @@ class ProcessViewScreen extends StatefulWidget {
 
 class _ProcessViewScreenState extends State<ProcessViewScreen> {
   late int _currentStep = widget.startStep.clamp(1, widget.model.steps.length);
-  bool _isBookmarked = false;
 
   int get _totalSteps => widget.model.steps.length;
 
@@ -37,13 +38,14 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
 
   double get _progress => _currentStep / _totalSteps;
 
-  /// Persists [_currentStep] as the resume point for this model.
-  ///
-  /// TODO(agent): call FoldingSessionProvider.cancel(save: true) /
-  /// saveProgress(modelId, step) once the provider exists; this stub only
-  /// surfaces a snackbar so the auto-save flow is visibly wired up.
+  /// Persists [_currentStep] as this model's resume point
+  /// (`PUT /api/bookmarks/progress/{modelId}`).
   Future<void> _saveStep({bool silent = false}) async {
-    if (!silent) {
+    await context.read<BookmarkProvider>().saveProgress(
+      widget.model,
+      _currentStep,
+    );
+    if (!silent && mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -52,27 +54,14 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
     }
   }
 
-  /// Bookmarks the current step so it surfaces on the Bookmark "In Progress"
-  /// tab, in addition to silently persisting the resume point.
   void _toggleBookmark() {
-    setState(() => _isBookmarked = !_isBookmarked);
-    _saveStep(silent: true);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            _isBookmarked
-                ? 'Bookmarked at step $_currentStep of $_totalSteps.'
-                : 'Bookmark removed.',
-          ),
-        ),
-      );
+    context.read<BookmarkProvider>().toggleFavorite(widget.model);
   }
 
   void _goToPrevious() {
     if (_currentStep <= 1) return;
     setState(() => _currentStep -= 1);
+    _saveStep(silent: true);
   }
 
   void _goToNext() {
@@ -81,10 +70,13 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
       return;
     }
     setState(() => _currentStep += 1);
+    _saveStep(silent: true);
   }
 
-  /// Replaces this screen with [FinishScreen] once the last step is complete.
+  /// Replaces this screen with [FinishScreen] once the last step is complete,
+  /// and drops the model out of the "In Progress" list.
   void _finishTutorial() {
+    context.read<BookmarkProvider>().removeProgress(widget.model);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => FinishScreen(
@@ -138,7 +130,9 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
               modelTitle: widget.model.name,
               currentStep: _currentStep,
               totalSteps: _totalSteps,
-              isBookmarked: _isBookmarked,
+              isBookmarked: context.watch<BookmarkProvider>().isFavorite(
+                widget.model.id,
+              ),
               onCancel: _handleCancel,
               onToggleBookmark: _toggleBookmark,
             ),
@@ -172,7 +166,11 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _DiagramCard(imageUrl: _step.diagramAsset),
+                  _DiagramCard(
+                    imageUrl: _step.diagramAsset,
+                    onSwipeLeft: _goToNext,
+                    onSwipeRight: _goToPrevious,
+                  ),
                   if (_step.tip != null) ...[
                     const SizedBox(height: 24),
                     _TipCard(text: _step.tip!),
@@ -333,9 +331,20 @@ class _Header extends StatelessWidget {
 
 /// Diagram viewer card with a "Tap to inspect" affordance overlay.
 class _DiagramCard extends StatelessWidget {
-  const _DiagramCard({required this.imageUrl});
+  const _DiagramCard({
+    required this.imageUrl,
+    this.onSwipeLeft,
+    this.onSwipeRight,
+  });
 
   final String imageUrl;
+
+  /// Triggered by a fast horizontal swipe while the diagram is at its
+  /// default (non-zoomed) scale — left advances to the next step, right
+  /// returns to the previous one. Disabled while zoomed in, where a drag
+  /// instead pans the enlarged image (see [_ZoomableDiagram]).
+  final VoidCallback? onSwipeLeft;
+  final VoidCallback? onSwipeRight;
 
   @override
   Widget build(BuildContext context) {
@@ -376,17 +385,10 @@ class _DiagramCard extends StatelessWidget {
           Positioned.fill(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  decoration: const BoxDecoration(color: Color(0xFFEEF2FF)),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.broken_image_outlined,
-                    color: Color(0xFF757684),
-                  ),
-                ),
+              child: _ZoomableDiagram(
+                imageUrl: imageUrl,
+                onSwipeLeft: onSwipeLeft,
+                onSwipeRight: onSwipeRight,
               ),
             ),
           ),
@@ -411,7 +413,7 @@ class _DiagramCard extends StatelessWidget {
                     color: Color(0xFF454652),
                   ),
                   Text(
-                    'Tap to inspect',
+                    'Double tap or pinch to zoom',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF454652),
@@ -427,6 +429,116 @@ class _DiagramCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Pinch-to-zoom + drag-to-pan + double-tap-to-zoom diagram viewer, plus
+/// swipe-to-change-step while not zoomed in.
+///
+/// Built on [InteractiveViewer], which natively handles pinch zoom and pan;
+/// double-tap-to-zoom is layered on top via a [GestureDetector] driving the
+/// shared [TransformationController] (InteractiveViewer has no built-in
+/// double-tap gesture). At the default 1x scale there's nothing to pan to,
+/// so [InteractiveViewer]'s own pan is disabled there and a horizontal swipe
+/// instead calls [onSwipeLeft]/[onSwipeRight] (next/previous step) — once
+/// zoomed in, panning takes back over and swipes move the image instead.
+class _ZoomableDiagram extends StatefulWidget {
+  const _ZoomableDiagram({
+    required this.imageUrl,
+    this.onSwipeLeft,
+    this.onSwipeRight,
+  });
+
+  final String imageUrl;
+  final VoidCallback? onSwipeLeft;
+  final VoidCallback? onSwipeRight;
+
+  @override
+  State<_ZoomableDiagram> createState() => _ZoomableDiagramState();
+}
+
+class _ZoomableDiagramState extends State<_ZoomableDiagram> {
+  static const _zoomScale = 2.5;
+  static const _minSwipeVelocity = 200.0;
+
+  final _controller = TransformationController();
+  Offset _doubleTapPosition = Offset.zero;
+
+  bool get _isZoomedIn => _controller.value.getMaxScaleOnAxis() > 1.01;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pinch/pan gestures mutate _controller.value directly (bypassing our
+    // setState calls), so listen for them to keep panEnabled/swipe-gating
+    // in sync with the live zoom level.
+    _controller.addListener(_onTransformChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTransformChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTransformChanged() => setState(() {});
+
+  void _onDoubleTapDown(TapDownDetails details) {
+    _doubleTapPosition = details.localPosition;
+  }
+
+  void _onDoubleTap() {
+    final isZoomedIn = _isZoomedIn;
+    setState(() {
+      _controller.value = isZoomedIn
+          ? Matrix4.identity()
+          : (Matrix4.identity()
+              ..translateByDouble(
+                -_doubleTapPosition.dx * (_zoomScale - 1),
+                -_doubleTapPosition.dy * (_zoomScale - 1),
+                0,
+                1,
+              )
+              ..scaleByDouble(_zoomScale, _zoomScale, _zoomScale, 1));
+    });
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity <= -_minSwipeVelocity) {
+      widget.onSwipeLeft?.call();
+    } else if (velocity >= _minSwipeVelocity) {
+      widget.onSwipeRight?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isZoomedIn = _isZoomedIn;
+    return GestureDetector(
+      onDoubleTapDown: _onDoubleTapDown,
+      onDoubleTap: _onDoubleTap,
+      onHorizontalDragEnd: isZoomedIn ? null : _onHorizontalDragEnd,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        minScale: 1,
+        maxScale: 4,
+        panEnabled: isZoomedIn,
+        child: Image.network(
+          widget.imageUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Container(
+            decoration: const BoxDecoration(color: Color(0xFFEEF2FF)),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.broken_image_outlined,
+              color: Color(0xFF757684),
+            ),
+          ),
+        ),
       ),
     );
   }

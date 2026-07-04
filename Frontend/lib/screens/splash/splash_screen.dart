@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/bookmark_provider.dart';
 import '../auth/login_screen.dart';
 import '../shell/shell_screen.dart';
 
@@ -64,6 +65,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     final isAuthenticated =
         context.read<AuthProvider>().status == AuthStatus.authenticated;
+    if (isAuthenticated) {
+      context.read<BookmarkProvider>().load();
+    }
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) =>

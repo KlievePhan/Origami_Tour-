@@ -66,6 +66,8 @@ namespace Backend
             builder.Services.AddScoped<IOrigamiModelService, OrigamiModelService>();
             builder.Services.AddScoped<IAuthRepository, AuthRepository>();
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
+            builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 
             // Allows the Flutter web dev server (any localhost port) to call this API.
             builder.Services.AddCors(options =>

@@ -67,6 +67,11 @@ class AuthRepository {
 
   Future<void> logout() => _storage.delete(key: _tokenKey);
 
+  /// The currently stored JWT, or `null` if signed out — used by other
+  /// repositories (e.g. [BookmarkRepository]) to attach the `Authorization`
+  /// header to their own requests.
+  Future<String?> currentToken() => _storage.read(key: _tokenKey);
+
   /// Restores the current user's profile from a previously stored token, or
   /// `null` if there is no token / it has expired.
   Future<UserProfile?> restoreSession() async {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/auth_provider.dart';
 import 'account_menu_button.dart';
+import 'user_avatar.dart';
 
 /// Persistent top app bar shown on every primary tab screen (Menu, Collection,
 /// Bookmark, Profile): avatar account menu, display name, mastery-rank pill,
@@ -11,6 +14,7 @@ class AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
     return Container(
       width: double.infinity,
       height: 64,
@@ -30,9 +34,9 @@ class AppHeader extends StatelessWidget {
         children: [
           Row(
             spacing: 12,
-            children: const [
-              AccountMenuButton(avatar: _Avatar()),
-              _NameAndRank(),
+            children: [
+              AccountMenuButton(avatar: _Avatar(avatarUrl: user?.avatarUrl)),
+              _NameAndRank(displayName: user?.displayName ?? 'Guest'),
             ],
           ),
           IconButton(
@@ -56,7 +60,9 @@ class AppHeader extends StatelessWidget {
 
 /// 40x40 avatar with an indigo border and an amber "online" status badge.
 class _Avatar extends StatelessWidget {
-  const _Avatar();
+  const _Avatar({this.avatarUrl});
+
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -84,10 +90,7 @@ class _Avatar extends StatelessWidget {
                 ),
               ],
             ),
-            child: Image.network(
-              'https://placehold.co/36x36.png',
-              fit: BoxFit.cover,
-            ),
+            child: UserAvatar(avatarUrl: avatarUrl, size: 36),
           ),
           Positioned(
             right: -2,
@@ -112,7 +115,9 @@ class _Avatar extends StatelessWidget {
 
 /// Display name and mastery-rank pill shown next to the avatar.
 class _NameAndRank extends StatelessWidget {
-  const _NameAndRank();
+  const _NameAndRank({required this.displayName});
+
+  final String displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -121,9 +126,9 @@ class _NameAndRank extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 4,
       children: [
-        const Text(
-          'Phan Anh',
-          style: TextStyle(
+        Text(
+          displayName,
+          style: const TextStyle(
             color: Color(0xFF011D86),
             fontSize: 22,
             fontFamily: 'Plus Jakarta Sans',

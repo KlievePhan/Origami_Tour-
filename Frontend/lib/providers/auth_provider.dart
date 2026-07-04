@@ -7,7 +7,6 @@ import '../models/user_profile.dart';
 enum AuthStatus { unknown, unauthenticated, authenticating, authenticated }
 
 /// Holds the signed-in session and orchestrates login/register/logout
-/// (CLAUDE.md §7 `AuthProvider`).
 class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthRepository? repository})
     : _repository = repository ?? AuthRepository();

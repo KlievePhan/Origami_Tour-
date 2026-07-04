@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../models/model_progress.dart';
 import '../../models/origami_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/main_bottom_nav_bar.dart';
 import '../model_details/model_details_screen.dart';
 
 /// Bookmark screen (`/home/bookmark`).
 ///
-/// UI ported from the Figma export; restructured into a real screen widget
-/// with a working segmented control that switches between two lists per the
-/// spec (README §5): **Favorites** (saved models) and **In Progress**
-/// (models mid-fold, showing the resume step, a progress bar, and the last
-/// session date). Visual design (colors, type, spacing, shape) is unchanged.
+/// Backed by [BookmarkProvider] (`GET /api/bookmarks/favorites` and
+/// `/api/bookmarks/in-progress`, `Backend/Controllers/BookmarksController.cs`):
+/// a segmented control switches between two lists per the spec (README §5):
+/// **Favorites** (saved models) and **In Progress** (models mid-fold, showing
+/// the resume step, a progress bar, and the last session date). Visual
+/// design (colors, type, spacing, shape) is unchanged from the Figma export.
 class BookmarkScreen extends StatefulWidget {
   const BookmarkScreen({super.key});
 
@@ -23,75 +27,14 @@ class _BookmarkScreenState extends State<BookmarkScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
-  // TODO(agent): replace with BookmarkProvider.favorites / .inProgress
-  // (prov-bookmark is not_started yet).
-  static final List<_BookmarkItem> _favorites = [
-    const _BookmarkItem(
-      title: 'Celestial Dragon',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'EXPERT',
-      difficultyColor: Color(0xE5011D86),
-      estimatedTime: '45 min',
-      foldsLabel: '64 folds',
-    ),
-    const _BookmarkItem(
-      title: 'Monarch Flutter',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'BEGINNER',
-      difficultyColor: Color(0xFF795901),
-      estimatedTime: '12 min',
-      foldsLabel: '18 folds',
-    ),
-    const _BookmarkItem(
-      title: 'Sacred Lotus',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'INTERMEDIATE',
-      difficultyColor: Color(0xB2011D86),
-      estimatedTime: '25 min',
-      foldsLabel: '32 folds',
-    ),
-  ];
-
-  static final List<_InProgressItem> _inProgress = [
-    const _InProgressItem(
-      title: 'Celestial Dragon',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'EXPERT',
-      difficultyColor: Color(0xE5011D86),
-      estimatedTime: '45 min',
-      foldsLabel: '64 folds',
-      currentStep: 7,
-      totalSteps: 15,
-      lastFolded: 'Last folded 2 days ago',
-    ),
-    const _InProgressItem(
-      title: 'Monarch Flutter',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'BEGINNER',
-      difficultyColor: Color(0xFF795901),
-      estimatedTime: '12 min',
-      foldsLabel: '18 folds',
-      currentStep: 3,
-      totalSteps: 8,
-      lastFolded: 'Last folded yesterday',
-    ),
-    const _InProgressItem(
-      title: 'Sacred Lotus',
-      imageUrl: 'https://placehold.co/356x192.png',
-      difficultyLabel: 'INTERMEDIATE',
-      difficultyColor: Color(0xB2011D86),
-      estimatedTime: '25 min',
-      foldsLabel: '32 folds',
-      currentStep: 10,
-      totalSteps: 12,
-      lastFolded: 'Last folded today',
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    final bookmarks = context.read<BookmarkProvider>();
+    if (bookmarks.status == BookmarkLoadStatus.initial) {
+      bookmarks.load();
+    }
   }
 
   @override
@@ -102,6 +45,8 @@ class _BookmarkScreenState extends State<BookmarkScreen>
 
   @override
   Widget build(BuildContext context) {
+    final bookmarks = context.watch<BookmarkProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
@@ -117,12 +62,9 @@ class _BookmarkScreenState extends State<BookmarkScreen>
               ),
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _BookmarkList(items: _favorites),
-                  _BookmarkList(items: _inProgress),
-                ],
+              child: _Body(
+                bookmarks: bookmarks,
+                tabController: _tabController,
               ),
             ),
           ],
@@ -130,6 +72,50 @@ class _BookmarkScreenState extends State<BookmarkScreen>
       ),
       bottomNavigationBar: const MainBottomNavBar(current: MainTab.bookmark),
     );
+  }
+}
+
+/// Routes to a loading spinner, an error state with retry, or the tab
+/// content, based on [BookmarkProvider.status].
+class _Body extends StatelessWidget {
+  const _Body({required this.bookmarks, required this.tabController});
+
+  final BookmarkProvider bookmarks;
+  final TabController tabController;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (bookmarks.status) {
+      case BookmarkLoadStatus.initial:
+      case BookmarkLoadStatus.loading:
+        return const Center(child: CircularProgressIndicator());
+      case BookmarkLoadStatus.error:
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                bookmarks.errorMessage ?? 'Could not load bookmarks.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFF454652)),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => bookmarks.load(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      case BookmarkLoadStatus.loaded:
+        return TabBarView(
+          controller: tabController,
+          children: [
+            _FavoritesList(models: bookmarks.favorites),
+            _InProgressList(items: bookmarks.inProgress),
+          ],
+        );
+    }
   }
 }
 
@@ -213,53 +199,118 @@ class _SegmentedTabBar extends StatelessWidget {
   }
 }
 
-/// Scrollable list of bookmark cards shared by both tabs. When [items]
-/// contains [_InProgressItem]s, each card additionally renders a progress
-/// bar and "Step X of Y" / "last folded" metadata.
-class _BookmarkList extends StatelessWidget {
-  const _BookmarkList({required this.items});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
 
-  final List<_BookmarkItem> items;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF454652),
+          fontSize: 14,
+          fontFamily: 'Work Sans',
+        ),
+      ),
+    );
+  }
+}
+
+/// "Favorites" tab: saved models, swipe-to-remove.
+class _FavoritesList extends StatelessWidget {
+  const _FavoritesList({required this.models});
+
+  final List<OrigamiModel> models;
+
+  @override
+  Widget build(BuildContext context) {
+    if (models.isEmpty) {
+      return const _EmptyState(message: 'No favorites yet.');
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: models.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final model = models[index];
+        return Dismissible(
+          key: ValueKey('favorite-${model.id}'),
+          direction: DismissDirection.endToStart,
+          background: const _RemoveBackground(),
+          onDismissed: (_) =>
+              context.read<BookmarkProvider>().toggleFavorite(model),
+          child: _BookmarkCard(model: model),
+        );
+      },
+    );
+  }
+}
+
+/// "In Progress" tab: models mid-fold, with a resume progress bar.
+class _InProgressList extends StatelessWidget {
+  const _InProgressList({required this.items});
+
+  final List<ModelProgress> items;
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Center(
-        child: Text(
-          'Nothing here yet',
-          style: TextStyle(
-            color: Color(0xFF454652),
-            fontSize: 14,
-            fontFamily: 'Work Sans',
-          ),
-        ),
-      );
+      return const _EmptyState(message: 'Nothing in progress yet.');
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => _BookmarkCard(item: items[index]),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Dismissible(
+          key: ValueKey('progress-${item.model.id}'),
+          direction: DismissDirection.endToStart,
+          background: const _RemoveBackground(),
+          onDismissed: (_) =>
+              context.read<BookmarkProvider>().removeProgress(item.model),
+          child: _BookmarkCard(model: item.model, progress: item),
+        );
+      },
+    );
+  }
+}
+
+class _RemoveBackground extends StatelessWidget {
+  const _RemoveBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: ShapeDecoration(
+        color: const Color(0xFFBA1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: const Icon(Icons.delete_outline, color: Colors.white),
     );
   }
 }
 
 class _BookmarkCard extends StatelessWidget {
-  const _BookmarkCard({required this.item});
+  const _BookmarkCard({required this.model, this.progress});
 
-  final _BookmarkItem item;
+  final OrigamiModel model;
+  final ModelProgress? progress;
 
   @override
   Widget build(BuildContext context) {
-    final inProgress = item is _InProgressItem ? item as _InProgressItem : null;
-
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ModelDetailsScreen(
-            model: item.toOrigamiModel(),
-            resumeStep: inProgress?.currentStep,
+            model: model,
+            resumeStep: progress?.currentStep,
           ),
         ),
       ),
@@ -290,7 +341,7 @@ class _BookmarkCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardHero(item: item),
+            _CardHero(model: model),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -298,7 +349,7 @@ class _BookmarkCard extends StatelessWidget {
                 spacing: 4,
                 children: [
                   Text(
-                    item.title,
+                    model.name,
                     style: const TextStyle(
                       color: Color(0xFF011D86),
                       fontSize: 16,
@@ -312,17 +363,17 @@ class _BookmarkCard extends StatelessWidget {
                     children: [
                       _MetaChip(
                         icon: Icons.timer_outlined,
-                        label: item.estimatedTime,
+                        label: '${model.estimatedMinutes} min',
                       ),
                       _MetaChip(
                         icon: Icons.layers_outlined,
-                        label: item.foldsLabel,
+                        label: '${model.steps.length} folds',
                       ),
                     ],
                   ),
-                  if (inProgress != null) ...[
+                  if (progress != null) ...[
                     const SizedBox(height: 8),
-                    _ProgressSection(item: inProgress),
+                    _ProgressSection(item: progress!),
                   ],
                 ],
               ),
@@ -335,12 +386,13 @@ class _BookmarkCard extends StatelessWidget {
 }
 
 class _CardHero extends StatelessWidget {
-  const _CardHero({required this.item});
+  const _CardHero({required this.model});
 
-  final _BookmarkItem item;
+  final OrigamiModel model;
 
   @override
   Widget build(BuildContext context) {
+    final colors = _difficultyColors(model.difficulty);
     return SizedBox(
       width: double.infinity,
       height: 192,
@@ -348,10 +400,13 @@ class _CardHero extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Container(
+              color: const Color(0xFFEFEDF6),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: NetworkImage(item.imageUrl),
+                  image: NetworkImage(
+                    model.heroUrl.isNotEmpty ? model.heroUrl : model.thumbnail,
+                  ),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -388,15 +443,15 @@ class _CardHero extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: ShapeDecoration(
-                color: item.difficultyColor,
+                color: colors.bg,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
               child: Text(
-                item.difficultyLabel,
-                style: const TextStyle(
-                  color: Colors.white,
+                model.difficulty.label.toUpperCase(),
+                style: TextStyle(
+                  color: colors.fg,
                   fontSize: 10,
                   fontFamily: 'Work Sans',
                   fontWeight: FontWeight.w700,
@@ -410,6 +465,14 @@ class _CardHero extends StatelessWidget {
       ),
     );
   }
+}
+
+({Color bg, Color fg}) _difficultyColors(Difficulty difficulty) {
+  return switch (difficulty) {
+    Difficulty.easy => (bg: const Color(0xFF795901), fg: Colors.white),
+    Difficulty.medium => (bg: const Color(0xB2011D86), fg: Colors.white),
+    Difficulty.hard => (bg: const Color(0xE5011D86), fg: Colors.white),
+  };
 }
 
 class _MetaChip extends StatelessWidget {
@@ -447,7 +510,7 @@ class _MetaChip extends StatelessWidget {
 class _ProgressSection extends StatelessWidget {
   const _ProgressSection({required this.item});
 
-  final _InProgressItem item;
+  final ModelProgress item;
 
   @override
   Widget build(BuildContext context) {
@@ -490,7 +553,7 @@ class _ProgressSection extends StatelessWidget {
           ),
         ),
         Text(
-          item.lastFolded,
+          _lastFoldedLabel(item.lastSessionDate),
           style: const TextStyle(
             color: Color(0xFF454652),
             fontSize: 11,
@@ -505,77 +568,9 @@ class _ProgressSection extends StatelessWidget {
   }
 }
 
-class _BookmarkItem {
-  const _BookmarkItem({
-    required this.title,
-    required this.imageUrl,
-    required this.difficultyLabel,
-    required this.difficultyColor,
-    required this.estimatedTime,
-    required this.foldsLabel,
-  });
-
-  final String title;
-  final String imageUrl;
-  final String difficultyLabel;
-  final Color difficultyColor;
-  final String estimatedTime;
-  final String foldsLabel;
-
-  /// Builds an [OrigamiModel] for the Model Details / Process View screens
-  /// from this card's display data (placeholder steps; see CLAUDE.md §6).
-  OrigamiModel toOrigamiModel({int? totalStepsOverride}) {
-    final difficulty = switch (difficultyLabel) {
-      'BEGINNER' => Difficulty.easy,
-      'INTERMEDIATE' => Difficulty.medium,
-      'EXPERT' => Difficulty.hard,
-      _ => Difficulty.medium,
-    };
-    final minutes =
-        int.tryParse(estimatedTime.replaceAll(RegExp(r'[^0-9]'), '')) ?? 10;
-    final steps =
-        totalStepsOverride ??
-        int.tryParse(foldsLabel.replaceAll(RegExp(r'[^0-9]'), '')) ??
-        12;
-    return OrigamiModel.placeholder(
-      id: title,
-      name: title,
-      thumbnail: imageUrl,
-      difficulty: difficulty,
-      estimatedMinutes: minutes,
-      totalSteps: steps,
-      description:
-          'A treasured fold from your bookmarks. Follow each step to '
-          'recreate $title.',
-      category: 'Bookmarked',
-    );
-  }
-}
-
-class _InProgressItem extends _BookmarkItem {
-  const _InProgressItem({
-    required super.title,
-    required super.imageUrl,
-    required super.difficultyLabel,
-    required super.difficultyColor,
-    required super.estimatedTime,
-    required super.foldsLabel,
-    required this.currentStep,
-    required this.totalSteps,
-    required this.lastFolded,
-  });
-
-  /// Resume point — the step the user last saved at (e.g. 7 of 15).
-  final int currentStep;
-  final int totalSteps;
-  final String lastFolded;
-
-  double get progress => totalSteps == 0 ? 0 : currentStep / totalSteps;
-
-  @override
-  OrigamiModel toOrigamiModel({int? totalStepsOverride}) {
-    return super.toOrigamiModel(
-      totalStepsOverride: totalStepsOverride ?? totalSteps,
-    );
-  }
+String _lastFoldedLabel(DateTime lastSession) {
+  final days = DateTime.now().difference(lastSession).inDays;
+  if (days <= 0) return 'Last folded today';
+  if (days == 1) return 'Last folded yesterday';
+  return 'Last folded $days days ago';
 }

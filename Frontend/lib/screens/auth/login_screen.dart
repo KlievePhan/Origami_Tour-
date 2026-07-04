@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/bookmark_provider.dart';
 import '../shell/shell_screen.dart';
 import 'recover_password_screen.dart';
 import 'register_screen.dart';
@@ -66,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _loginError = error;
     });
     if (error == null) {
+      context.read<BookmarkProvider>().load();
       _goToShellAfterLogin();
     } else {
       _formKey.currentState?.validate();
