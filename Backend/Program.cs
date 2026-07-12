@@ -39,9 +39,10 @@ namespace Backend
                     o.Password.RequireNonAlphanumeric = false;
                     o.User.RequireUniqueEmail = true;
                 })
-                .AddEntityFrameworkStores<AppDbContext>();
+                .AddEntityFrameworkStores<AppDbContext>()
+                .AddDefaultTokenProviders();
 
-            // Google sign-in is not implemented yet — LoginScreen's button stays a stub.
+            // Google sign-in validation is implemented manually using Google.Apis.Auth
             var jwtSection = builder.Configuration.GetSection("Jwt");
             builder.Services
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -68,6 +69,8 @@ namespace Backend
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
             builder.Services.AddScoped<IBookmarkService, BookmarkService>();
+            builder.Services.AddScoped<IMailService, MailService>();
+            builder.Services.AddScoped<IOtpService, OtpService>();
 
             // Allows the Flutter web dev server (any localhost port) to call this API.
             builder.Services.AddCors(options =>

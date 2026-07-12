@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../utils/leveling_utils.dart';
 import 'account_menu_button.dart';
 import 'user_avatar.dart';
 
@@ -15,13 +16,14 @@ class AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
-      height: 64,
+      height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8F9FA),
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x0C000000),
             blurRadius: 2,
@@ -35,8 +37,8 @@ class AppHeader extends StatelessWidget {
           Row(
             spacing: 12,
             children: [
-              AccountMenuButton(avatar: _Avatar(avatarUrl: user?.avatarUrl)),
-              _NameAndRank(displayName: user?.displayName ?? 'Guest'),
+              AccountMenuButton(avatar: _Avatar(avatarUrl: user?.avatarUrl, isDark: isDark)),
+              _NameAndRank(user: user, isDark: isDark),
             ],
           ),
           IconButton(
@@ -47,9 +49,9 @@ class AppHeader extends StatelessWidget {
                   const SnackBar(content: Text('No new notifications.')),
                 );
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.notifications_outlined,
-              color: Color(0xFF454652),
+              color: isDark ? Colors.white : const Color(0xFF454652),
             ),
           ),
         ],
@@ -60,9 +62,10 @@ class AppHeader extends StatelessWidget {
 
 /// 40x40 avatar with an indigo border and an amber "online" status badge.
 class _Avatar extends StatelessWidget {
-  const _Avatar({this.avatarUrl});
+  const _Avatar({this.avatarUrl, required this.isDark});
 
   final String? avatarUrl;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +82,7 @@ class _Avatar extends StatelessWidget {
             decoration: ShapeDecoration(
               color: Colors.white,
               shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 2, color: Color(0xFF24389C)),
+                side: BorderSide(width: 2, color: Theme.of(context).colorScheme.primary),
                 borderRadius: BorderRadius.circular(9999),
               ),
               shadows: const [
@@ -101,7 +104,7 @@ class _Avatar extends StatelessWidget {
               decoration: ShapeDecoration(
                 color: const Color(0xFFFDC003),
                 shape: RoundedRectangleBorder(
-                  side: const BorderSide(width: 2, color: Color(0xFFF8F9FA)),
+                  side: BorderSide(width: 2, color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA)),
                   borderRadius: BorderRadius.circular(9999),
                 ),
               ),
@@ -115,9 +118,10 @@ class _Avatar extends StatelessWidget {
 
 /// Display name and mastery-rank pill shown next to the avatar.
 class _NameAndRank extends StatelessWidget {
-  const _NameAndRank({required this.displayName});
+  const _NameAndRank({required this.user, required this.isDark});
 
-  final String displayName;
+  final dynamic user;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -127,28 +131,28 @@ class _NameAndRank extends StatelessWidget {
       spacing: 4,
       children: [
         Text(
-          displayName,
-          style: const TextStyle(
-            color: Color(0xFF011D86),
+          user?.displayName ?? 'Guest',
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF011D86),
             fontSize: 22,
             fontFamily: 'Plus Jakarta Sans',
-            fontWeight: FontWeight.w500,
-            height: 1.25,
+            fontWeight: FontWeight.w600,
+            height: 1.27,
           ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: ShapeDecoration(
-            color: const Color(0x1924389C),
+            color: isDark ? Colors.white12 : const Color(0x1924389C),
             shape: RoundedRectangleBorder(
-              side: const BorderSide(width: 1, color: Color(0x3324389C)),
+              side: BorderSide(width: 1, color: isDark ? Colors.white24 : const Color(0x3324389C)),
               borderRadius: BorderRadius.circular(9999),
             ),
           ),
-          child: const Text(
-            'Crane Apprentice · Lv.4',
+          child: Text(
+            '${LevelingUtils.getRankTitle(user?.level ?? 1)} · Lv.${user?.level ?? 1}',
             style: TextStyle(
-              color: Color(0xFF283CA0),
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 11,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w500,

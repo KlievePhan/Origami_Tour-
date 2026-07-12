@@ -34,9 +34,28 @@ namespace Backend.Repositories
             return (result.Succeeded, result.Errors.Select(e => e.Description));
         }
 
+        public async Task<(bool Success, IEnumerable<string> Errors)> CreateWithoutPasswordAsync(ApplicationUser user)
+        {
+            var result = await _userManager.CreateAsync(user);
+            return (result.Succeeded, result.Errors.Select(e => e.Description));
+        }
+
+        public async Task<(bool Success, IEnumerable<string> Errors)> ResetPasswordAsync(ApplicationUser user, string newPassword)
+        {
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            return (result.Succeeded, result.Errors.Select(e => e.Description));
+        }
+
         public Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
         {
             return _userManager.CheckPasswordAsync(user, password);
+        }
+
+        public async Task<bool> UpdateAsync(ApplicationUser user)
+        {
+            var result = await _userManager.UpdateAsync(user);
+            return result.Succeeded;
         }
     }
 }

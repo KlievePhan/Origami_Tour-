@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
-import '../shell/shell_screen.dart';
+import '../collection/collection_screen.dart';
 import 'recover_password_screen.dart';
 import 'register_screen.dart';
+import '../../widgets/google_auth_button.dart';
 
 /// Login screen (`/login`).
 ///
@@ -79,14 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _goToShellAfterLogin() {
     Navigator.of(
       context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const ShellScreen()));
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const CollectionScreen()));
   }
 
-  void _notifyPending(String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature is not wired up yet.')));
-  }
+
 
   void _openRegister() {
     Navigator.of(
@@ -103,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _openMainMenu() {
     Navigator.of(
       context,
-    ).push<void>(MaterialPageRoute(builder: (_) => const ShellScreen()));
+    ).push<void>(MaterialPageRoute(builder: (_) => const CollectionScreen()));
   }
 
   @override
@@ -273,9 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             const _OrDivider(),
             const SizedBox(height: 16),
-            _GoogleSignInButton(
-              onPressed: () => _notifyPending('Google sign-in'),
-            ),
+            const GoogleAuthButton(isLogin: true),
             const SizedBox(height: 24),
             Container(
               width: double.infinity,
@@ -668,51 +663,6 @@ class _OrDivider extends StatelessWidget {
         ),
         const Expanded(child: Divider(height: 1, color: Color(0xFFE3E1EA))),
       ],
-    );
-  }
-}
-
-/// Outlined "Sign in with Google" button.
-class _GoogleSignInButton extends StatelessWidget {
-  const _GoogleSignInButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF1A1B21),
-          side: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // TODO(agent): replace with the Google "G" mark from assets/ once provided.
-            const Icon(Icons.g_mobiledata, size: 24, color: Color(0xFF1A1B21)),
-            const SizedBox(width: 8),
-            Text(
-              'Sign in with Google',
-              style: TextStyle(
-                color: const Color(0xFF1A1B21),
-                fontSize: 14,
-                fontFamily: 'Work Sans',
-                fontWeight: FontWeight.w500,
-                height: 1.43,
-                letterSpacing: 0.10,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -4,8 +4,6 @@ import 'package:http/http.dart' as http;
 
 import '../../core/api_config.dart';
 
-/// Thrown when the API rejects a register/login request (4xx), carrying the
-/// human-readable error messages from the response body.
 class AuthException implements Exception {
   AuthException(this.errors);
 
@@ -15,22 +13,28 @@ class AuthException implements Exception {
   String toString() => errors.join(' ');
 }
 
-/// Raw REST client for the Backend ASP.NET Core API's auth endpoints
-/// (`Backend/Controllers/AuthController.cs`).
 class AuthRemoteSource {
   AuthRemoteSource({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  Future<Map<String, dynamic>> register({
+  Future<void> sendRegisterOtp(String email) async {
+    await _post('/api/auth/register/send-otp', {'email': email});
+  }
+
+  Future<Map<String, dynamic>> verifyRegisterOtp({
     required String displayName,
     required String email,
     required String password,
-  }) {
-    return _post('/api/auth/register', {
-      'displayName': displayName,
-      'email': email,
-      'password': password,
+    required String otp,
+  }) async {
+    return _post('/api/auth/register/verify', {
+      'registerDto': {
+        'displayName': displayName,
+        'email': email,
+        'password': password,
+      },
+      'otp': otp,
     });
   }
 
@@ -39,6 +43,26 @@ class AuthRemoteSource {
     required String password,
   }) {
     return _post('/api/auth/login', {'email': email, 'password': password});
+  }
+
+  Future<Map<String, dynamic>> googleLogin(String idToken) {
+    return _post('/api/auth/google-login', {'idToken': idToken});
+  }
+
+  Future<void> sendRecoveryOtp(String email) async {
+    await _post('/api/auth/recover/send-otp', {'email': email});
+  }
+
+  Future<void> verifyRecoveryOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    await _post('/api/auth/recover/verify', {
+      'email': email,
+      'otp': otp,
+      'newPassword': newPassword,
+    });
   }
 
   Future<Map<String, dynamic>> me(String token) async {
@@ -55,7 +79,7 @@ class AuthRemoteSource {
 
   Future<Map<String, dynamic>> _post(
     String path,
-    Map<String, String> body,
+    Map<String, dynamic> body,
   ) async {
     final uri = Uri.parse('$apiBaseUrl$path');
     final response = await _client.post(
@@ -63,6 +87,15 @@ class AuthRemoteSource {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
+
+    // If there is no response body (e.g. 200 OK for SendRegisterOtp)
+    if (response.body.isEmpty) {
+      if (response.statusCode >= 400) {
+        throw AuthException(['Something went wrong.']);
+      }
+      return {};
+    }
+
     final decoded = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
       final errors = (decoded['errors'] as List<dynamic>? ?? const [])

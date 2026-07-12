@@ -29,11 +29,12 @@ class MainBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: const ShapeDecoration(
-        color: Color(0xFFF4F2FC),
-        shape: RoundedRectangleBorder(
+      decoration: ShapeDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4F2FC),
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -63,18 +64,21 @@ class MainBottomNavBar extends StatelessWidget {
               icon: Icons.grid_view_rounded,
               label: 'Collection',
               selected: current == MainTab.collection,
+              isDark: isDark,
               onTap: () => _open(context, MainTab.collection),
             ),
             _NavBarItem(
               icon: Icons.bookmark_outline,
               label: 'Bookmark',
               selected: current == MainTab.bookmark,
+              isDark: isDark,
               onTap: () => _open(context, MainTab.bookmark),
             ),
             _NavBarItem(
               icon: Icons.person_outline,
               label: 'Profile',
               selected: current == MainTab.profile,
+              isDark: isDark,
               onTap: () => _open(context, MainTab.profile),
             ),
           ],
@@ -89,12 +93,14 @@ class _NavBarItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.selected,
+    required this.isDark,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
+  final bool isDark;
   final VoidCallback onTap;
 
   @override
@@ -119,15 +125,15 @@ class _NavBarItem extends StatelessWidget {
               icon,
               size: 20,
               color: selected
-                  ? const Color(0xFF9DABFF)
-                  : const Color(0xFF454652),
+                  ? Colors.white
+                  : (isDark ? Colors.white70 : const Color(0xFF454652)),
             ),
             Text(
               label,
               style: TextStyle(
                 color: selected
-                    ? const Color(0xFF9DABFF)
-                    : const Color(0xFF454652),
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : const Color(0xFF454652)),
                 fontSize: 14,
                 fontFamily: 'Work Sans',
                 fontWeight: FontWeight.w500,

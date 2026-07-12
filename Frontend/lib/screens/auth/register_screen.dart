@@ -4,8 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
-import '../shell/shell_screen.dart';
+import '../collection/collection_screen.dart';
 import 'login_screen.dart';
+import '../../widgets/google_auth_button.dart';
 
 /// Register screen (`/register`).
 ///
@@ -99,27 +100,101 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isSubmitting = true;
       _emailError = null;
     });
-    final error = await context.read<AuthProvider>().register(
-      displayName: _fullNameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
+    
+    final email = _emailController.text.trim();
+    final error = await context.read<AuthProvider>().sendRegisterOtp(email);
+    
     if (!mounted) return;
     setState(() {
       _isSubmitting = false;
       _emailError = error;
     });
+
     if (error == null) {
-      // Per CLAUDE.md §9-A, a successful register auto signs in and
-      // replaces this screen (and Login beneath it) with the main shell.
-      context.read<BookmarkProvider>().load();
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const ShellScreen()),
-        (route) => false,
-      );
+      _showOtpDialog();
     } else {
       _formKey.currentState?.validate();
     }
+  }
+
+  void _showOtpDialog() {
+    final otpController = TextEditingController();
+    bool isVerifying = false;
+    String? otpError;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Enter OTP'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('We sent an OTP to your email. Please enter it below.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: otpController,
+                    decoration: InputDecoration(
+                      labelText: 'OTP',
+                      errorText: otpError,
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isVerifying ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifying
+                      ? null
+                      : () async {
+                          final otp = otpController.text.trim();
+                          if (otp.isEmpty) return;
+
+                          setDialogState(() {
+                            isVerifying = true;
+                            otpError = null;
+                          });
+
+                          final error = await context.read<AuthProvider>().verifyRegisterOtp(
+                            displayName: _fullNameController.text.trim(),
+                            email: _emailController.text.trim(),
+                            password: _passwordController.text,
+                            otp: otp,
+                          );
+
+                          if (!context.mounted) return;
+
+                          if (error == null) {
+                            Navigator.of(context).pop();
+                            context.read<BookmarkProvider>().load();
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (_) => const CollectionScreen()),
+                              (route) => false,
+                            );
+                          } else {
+                            setDialogState(() {
+                              isVerifying = false;
+                              otpError = error;
+                            });
+                          }
+                        },
+                  child: isVerifying
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Verify'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _notifyPending(String feature) {
@@ -175,6 +250,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const _HeroBanner(),
                   const SizedBox(height: 24),
                   _buildFormCard(context),
+                  const SizedBox(height: 24),
+                  const _OrDivider(),
+                  const SizedBox(height: 16),
+                  const GoogleAuthButton(isLogin: false),
                   const SizedBox(height: 24),
                   const _PerksRow(),
                 ],

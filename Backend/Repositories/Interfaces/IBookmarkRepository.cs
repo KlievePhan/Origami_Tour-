@@ -12,7 +12,7 @@ namespace Backend.Repositories.Interfaces
 
         Task<List<UserModelProgress>> GetInProgressAsync(string userId);
 
-        Task<UserModelProgress?> UpsertProgressAsync(
+        Task<(UserModelProgress? Progress, int ExpGained, int NewExp, int NewLevel)> UpsertProgressAsync(
             string userId,
             int modelId,
             int currentStep,

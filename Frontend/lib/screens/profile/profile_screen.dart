@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../utils/leveling_utils.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/main_bottom_nav_bar.dart';
 import '../../widgets/user_avatar.dart';
@@ -18,8 +19,10 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -54,13 +57,15 @@ class _ProfileSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: ShapeDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x4CC5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x4CC5C5D4)),
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
@@ -78,19 +83,19 @@ class _ProfileSummaryCard extends StatelessWidget {
           Text(
             user?.displayName ?? 'Guest',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF011D86),
+            style: TextStyle(
+              color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
               fontSize: 22,
               fontFamily: 'Plus Jakarta Sans',
               fontWeight: FontWeight.w600,
               height: 1.27,
             ),
           ),
-          const Text(
-            'Crane Apprentice · Lv.4',
+          Text(
+            '${LevelingUtils.getRankTitle(user?.level ?? 1)} · Lv.${user?.level ?? 1}',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF454652),
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 14,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w500,
@@ -98,11 +103,11 @@ class _ProfileSummaryCard extends StatelessWidget {
               letterSpacing: 0.25,
             ),
           ),
-          const Text(
+          Text(
             'Journey of a thousand folds begins with a single crease.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF454652),
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 14,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w400,
@@ -231,19 +236,26 @@ class _TitleBadge extends StatelessWidget {
 class _MasteryCard extends StatelessWidget {
   const _MasteryCard();
 
-  static const _exp = 340;
-  static const _expForNextRank = 500;
-  static const _expRemaining = _expForNextRank - _exp;
-
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().currentUser;
+    final exp = user?.exp ?? 0;
+    final level = user?.level ?? 1;
+    final expForNextRank = LevelingUtils.getExpForNextLevel(level);
+    final expRemaining = expForNextRank - exp;
+    
+    final rankTitle = LevelingUtils.getRankTitle(level);
+    final nextLevel = level + 1;
+    final nextRankTitle = LevelingUtils.getRankTitle(nextLevel);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: ShapeDecoration(
-        color: const Color(0xFFF4F2FC),
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4F2FC),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x33C5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x33C5C5D4)),
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
@@ -258,7 +270,7 @@ class _MasteryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 12,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -268,7 +280,7 @@ class _MasteryCard extends StatelessWidget {
                   Text(
                     'Mastery',
                     style: TextStyle(
-                      color: Color(0xFF011D86),
+                      color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
                       fontSize: 22,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w700,
@@ -276,9 +288,9 @@ class _MasteryCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Level 4 Artisan',
+                    'Level $level $rankTitle',
                     style: TextStyle(
-                      color: Color(0xFF454652),
+                      color: isDark ? Colors.white70 : const Color(0xFF454652),
                       fontSize: 11,
                       fontFamily: 'Work Sans',
                       fontWeight: FontWeight.w500,
@@ -294,9 +306,9 @@ class _MasteryCard extends StatelessWidget {
                 spacing: 4,
                 children: [
                   Text(
-                    '$_exp',
+                    '$exp',
                     style: TextStyle(
-                      color: Color(0xFF24389C),
+                      color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF24389C),
                       fontSize: 22,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w700,
@@ -304,9 +316,9 @@ class _MasteryCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '/ $_expForNextRank EXP',
+                    '/ $expForNextRank EXP',
                     style: TextStyle(
-                      color: Color(0xFF454652),
+                      color: isDark ? Colors.white70 : const Color(0xFF454652),
                       fontSize: 14,
                       fontFamily: 'Work Sans',
                       fontWeight: FontWeight.w400,
@@ -318,12 +330,12 @@ class _MasteryCard extends StatelessWidget {
               ),
             ],
           ),
-          const _ExpProgressBar(progress: _exp / _expForNextRank),
-          const Text(
-            '$_expRemaining EXP more to unlock "Paper Architect" rank',
+          _ExpProgressBar(progress: expForNextRank == 0 ? 0 : exp / expForNextRank),
+          Text(
+            '$expRemaining EXP more to unlock "$nextRankTitle" rank',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF454652),
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 11,
               fontStyle: FontStyle.italic,
               fontFamily: 'Work Sans',
@@ -347,6 +359,8 @@ class _ExpProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       height: 24,
       child: Stack(
@@ -354,7 +368,7 @@ class _ExpProgressBar extends StatelessWidget {
           Container(
             decoration: ShapeDecoration(
               shape: RoundedRectangleBorder(
-                side: const BorderSide(width: 1, color: Color(0x4CC5C5D4)),
+                side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x4CC5C5D4)),
                 borderRadius: BorderRadius.circular(9999),
               ),
             ),
@@ -365,7 +379,7 @@ class _ExpProgressBar extends StatelessWidget {
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: progress,
-                child: Container(color: const Color(0xFF24389C)),
+                child: Container(color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF24389C)),
               ),
             ),
           ),
@@ -376,7 +390,7 @@ class _ExpProgressBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(
                   4,
-                  (_) => Container(width: 1, color: const Color(0x33C5C5D4)),
+                  (_) => Container(width: 1, color: isDark ? const Color(0x66333333) : const Color(0x33C5C5D4)),
                 ),
               ),
             ),
@@ -393,13 +407,15 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    final user = context.watch<AuthProvider>().currentUser;
+    
+    return Row(
       spacing: 16,
       children: [
         Expanded(
-          child: _StatCard(label: 'Total Models', value: '12'),
+          child: _StatCard(label: 'Total Models', value: '${user?.totalCompleted ?? 0}'),
         ),
-        Expanded(
+        const Expanded(
           child: _StatCard(label: 'Streak', value: '5 Days'),
         ),
       ],
@@ -415,13 +431,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: ShapeDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x33C5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x33C5C5D4)),
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
@@ -438,8 +456,8 @@ class _StatCard extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF454652),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 11,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w500,
@@ -449,8 +467,8 @@ class _StatCard extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: Color(0xFF011D86),
+            style: TextStyle(
+              color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
               fontSize: 28,
               fontFamily: 'Plus Jakarta Sans',
               fontWeight: FontWeight.w600,
@@ -467,47 +485,47 @@ class _StatCard extends StatelessWidget {
 class _AchievementGallery extends StatelessWidget {
   const _AchievementGallery();
 
-  static const _achievements = [
-    _Achievement(
-      label: 'First Fold',
-      icon: Icons.auto_awesome,
-      background: Color(0xFFB0EFE2),
-      unlocked: true,
-    ),
-    _Achievement(
-      label: 'Perfect Angle',
-      icon: Icons.architecture,
-      background: Color(0xFFFFDF9E),
-      unlocked: true,
-    ),
-    _Achievement(
-      label: 'Level 4',
-      icon: Icons.military_tech,
-      background: Color(0xFFDEE0FF),
-      unlocked: true,
-    ),
-    _Achievement(
-      label: 'Masterpiece',
-      icon: Icons.emoji_events_outlined,
-      background: Colors.white,
-      unlocked: false,
-    ),
-    _Achievement(
-      label: '30 Day Streak',
-      icon: Icons.local_fire_department_outlined,
-      background: Colors.white,
-      unlocked: false,
-    ),
-    _Achievement(
-      label: 'Nature Scout',
-      icon: Icons.eco_outlined,
-      background: Colors.white,
-      unlocked: false,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final user = context.watch<AuthProvider>().currentUser;
+    final level = user?.level ?? 1;
+    final totalCompleted = user?.totalCompleted ?? 0;
+
+    final achievements = [
+      _Achievement(
+        label: 'First Fold',
+        icon: Icons.auto_awesome,
+        background: const Color(0xFFB0EFE2),
+        unlocked: totalCompleted > 0,
+      ),
+      _Achievement(
+        label: 'Senior Apprentice',
+        icon: Icons.military_tech,
+        background: const Color(0xFFDEE0FF),
+        unlocked: level >= 4,
+      ),
+      _Achievement(
+        label: 'Master of Origami',
+        icon: Icons.emoji_events,
+        background: const Color(0xFFFFDF9E),
+        unlocked: level >= 6,
+      ),
+      // Category completion achievement (currently static as backend doesn't track it yet)
+      const _Achievement(
+        label: 'Guru of Animal origami',
+        icon: Icons.pets,
+        background: Colors.white,
+        unlocked: false,
+      ),
+      const _Achievement(
+        label: '30 Day Streak',
+        icon: Icons.local_fire_department_outlined,
+        background: Colors.white,
+        unlocked: false,
+      ),
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 16,
@@ -515,10 +533,10 @@ class _AchievementGallery extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Achievement Gallery',
               style: TextStyle(
-                color: Color(0xFF011D86),
+                color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
                 fontSize: 22,
                 fontFamily: 'Plus Jakarta Sans',
                 fontWeight: FontWeight.w700,
@@ -535,10 +553,10 @@ class _AchievementGallery extends StatelessWidget {
                     ),
                   );
               },
-              child: const Text(
+              child: Text(
                 'View All',
                 style: TextStyle(
-                  color: Color(0xFF24389C),
+                  color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF24389C),
                   fontSize: 14,
                   fontFamily: 'Work Sans',
                   fontWeight: FontWeight.w500,
@@ -552,15 +570,15 @@ class _AchievementGallery extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _achievements.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
+          itemCount: achievements.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: MediaQuery.sizeOf(context).width > 600 ? 6 : 3,
             mainAxisSpacing: 16,
             crossAxisSpacing: 8,
             mainAxisExtent: 132,
           ),
           itemBuilder: (context, index) =>
-              _AchievementBadge(achievement: _achievements[index]),
+              _AchievementBadge(achievement: achievements[index]),
         ),
       ],
     );
@@ -588,6 +606,8 @@ class _AchievementBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       spacing: 8,
@@ -596,13 +616,13 @@ class _AchievementBadge extends StatelessWidget {
           width: 80,
           height: 80,
           decoration: ShapeDecoration(
-            color: achievement.background,
+            color: achievement.unlocked ? achievement.background : (isDark ? const Color(0xFF333333) : achievement.background),
             shape: RoundedRectangleBorder(
               side: BorderSide(
                 width: 4,
                 color: achievement.unlocked
-                    ? Colors.white
-                    : const Color(0xFFC5C5D4),
+                    ? (isDark ? const Color(0xFF1E1E1E) : Colors.white)
+                    : (isDark ? const Color(0xFF454652) : const Color(0xFFC5C5D4)),
               ),
               borderRadius: BorderRadius.circular(9999),
             ),
@@ -627,7 +647,7 @@ class _AchievementBadge extends StatelessWidget {
             achievement.icon,
             color: achievement.unlocked
                 ? const Color(0xFF1A1B21)
-                : const Color(0xFF757684),
+                : (isDark ? Colors.white70 : const Color(0xFF757684)),
           ),
         ),
         Text(
@@ -635,8 +655,8 @@ class _AchievementBadge extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: achievement.unlocked
-                ? const Color(0xFF1A1B21)
-                : const Color(0xFF454652),
+                ? (isDark ? Colors.white : const Color(0xFF1A1B21))
+                : (isDark ? Colors.white70 : const Color(0xFF454652)),
             fontSize: 11,
             fontFamily: 'Work Sans',
             fontWeight: FontWeight.w500,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/repositories/model_repository.dart';
+import '../../models/model_progress.dart';
 import '../../models/origami_model.dart';
+import '../../providers/bookmark_provider.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/main_bottom_nav_bar.dart';
 import '../model_details/model_details_screen.dart';
@@ -109,15 +112,21 @@ class _CollectionScreenState extends State<CollectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            const AppHeader(),
-            Expanded(child: _buildBody()),
-          ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                const AppHeader(),
+                Expanded(child: _buildBody()),
+              ],
+            ),
+          ),
         ),
       ),
       bottomNavigationBar: const MainBottomNavBar(current: MainTab.collection),
@@ -132,6 +141,8 @@ class _CollectionScreenState extends State<CollectionScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bookmarkProvider = context.watch<BookmarkProvider>();
     final filtered = _filteredModels;
     final categories = _categories;
 
@@ -144,6 +155,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
           options: _difficulties,
           selected: _selectedDifficulty,
           onSelected: _toggleDifficulty,
+          isDark: isDark,
         ),
         if (categories.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -152,10 +164,11 @@ class _CollectionScreenState extends State<CollectionScreen> {
             selected: _selectedCategory,
             onSelected: _toggleCategory,
             pill: true,
+            isDark: isDark,
           ),
         ],
         const SizedBox(height: 24),
-        _OverallProgressCard(finished: 0, total: _models!.length),
+        _buildOverallProgressCard(filtered.length),
         const SizedBox(height: 24),
         if (filtered.isEmpty)
           const _EmptyState()
@@ -165,23 +178,30 @@ class _CollectionScreenState extends State<CollectionScreen> {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: filtered.length,
             gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: MediaQuery.sizeOf(context).width > 600 ? 4 : 2,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: 0.72,
+                  childAspectRatio: 0.65,
                 ),
-            itemBuilder: (context, index) =>
-                _ModelGridCard(model: _CollectionModel(filtered[index])),
+            itemBuilder: (context, index) {
+              final model = filtered[index];
+              final progress = bookmarkProvider.inProgress
+                  .where((p) => p.model.id == model.id)
+                  .firstOrNull;
+              return _ModelGridCard(
+                model: _CollectionModel(model, modelProgress: progress),
+              );
+            },
           ),
         const SizedBox(height: 24),
-        const Opacity(
-          opacity: 0.40,
+        Opacity(
+          opacity: isDark ? 0.60 : 0.40,
           child: Center(
             child: Text(
               'Scroll to discover more models',
               style: TextStyle(
-                color: Color(0xFF1A1B21),
+                color: isDark ? Colors.white : const Color(0xFF1A1B21),
                 fontSize: 16,
                 fontFamily: 'Work Sans',
                 fontWeight: FontWeight.w400,
@@ -193,206 +213,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
       ],
     );
   }
-}
 
-/// Shown when [ModelRepository.getModels] fails (e.g. the Backend API isn't
-/// reachable at the configured base URL).
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.cloud_off,
-              size: 40,
-              color: Color(0xFF757684),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "Couldn't load models from the server.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF454652),
-                fontSize: 16,
-                fontFamily: 'Work Sans',
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Shown when no model matches the active search/filters.
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 48),
-      child: Center(
-        child: Text(
-          'No models match your search or filters.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF757684),
-            fontSize: 16,
-            fontFamily: 'Work Sans',
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 48,
-      clipBehavior: Clip.antiAlias,
-      decoration: ShapeDecoration(
-        color: const Color(0xFFF4F2FC),
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(
-          color: Color(0xFF1A1B21),
-          fontSize: 16,
-          fontFamily: 'Work Sans',
-          fontWeight: FontWeight.w400,
-        ),
-        decoration: const InputDecoration(
-          hintText: 'Search models...',
-          hintStyle: TextStyle(
-            color: Color(0xFF6B7280),
-            fontSize: 16,
-            fontFamily: 'Work Sans',
-            fontWeight: FontWeight.w400,
-          ),
-          prefixIcon: Icon(Icons.search, color: Color(0xFF6B7280)),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 13.5),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shared row of selectable filter chips (difficulty or category).
-class _FilterChipsRow extends StatelessWidget {
-  const _FilterChipsRow({
-    required this.options,
-    required this.selected,
-    required this.onSelected,
-    this.pill = false,
-  });
-
-  final List<String> options;
-  final String? selected;
-  final ValueChanged<String> onSelected;
-
-  /// Pill-shaped outline chips (categories) vs. filled/outline difficulty chips.
-  final bool pill;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(options.length, (index) {
-          final label = options[index];
-          final isSelected = selected == label;
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index == options.length - 1 ? 0 : 8,
-            ),
-            child: GestureDetector(
-              onTap: () => onSelected(label),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: pill ? 6 : 8.5,
-                ),
-                decoration: ShapeDecoration(
-                  color: isSelected
-                      ? const Color(0xFF24389C)
-                      : Colors.transparent,
-                  shape: RoundedRectangleBorder(
-                    side: BorderSide(
-                      width: 1,
-                      color: isSelected
-                          ? Colors.transparent
-                          : const Color(0xFFC5C5D4),
-                    ),
-                    borderRadius: BorderRadius.circular(pill ? 12 : 9999),
-                  ),
-                  shadows: isSelected
-                      ? const [
-                          BoxShadow(
-                            color: Color(0x0C000000),
-                            blurRadius: 2,
-                            offset: Offset(0, 1),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected
-                        ? const Color(0xFF9DABFF)
-                        : const Color(0xFF454652),
-                    fontSize: 16,
-                    fontFamily: 'Work Sans',
-                    fontWeight: FontWeight.w400,
-                    height: 1.50,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-/// "Finished: X / Y" banner with a percentage progress bar and a level-up nudge.
-class _OverallProgressCard extends StatelessWidget {
-  const _OverallProgressCard({required this.finished, required this.total});
-
-  final int finished;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = total == 0 ? 0.0 : finished / total;
+  Widget _buildOverallProgressCard(int total) {
+    final finished = 0; // TODO(agent): bind this to real progress later
+    final progress = total > 0 ? finished / total : 0.0;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -485,6 +309,199 @@ class _OverallProgressCard extends StatelessWidget {
   }
 }
 
+/// Shown when [ModelRepository.getModels] fails (e.g. the Backend API isn't
+/// reachable at the configured base URL).
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off,
+              size: 40,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF757684),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Couldn't load models from the server.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF454652),
+                fontSize: 16,
+                fontFamily: 'Work Sans',
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when no model matches the active search/filters.
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      child: Center(
+        child: Text(
+          'No models match your search or filters.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF757684),
+            fontSize: 16,
+            fontFamily: 'Work Sans',
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      height: 48,
+      clipBehavior: Clip.antiAlias,
+      decoration: ShapeDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4F2FC),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0xFFC5C5D4)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+        child: TextField(
+          controller: controller,
+          style: TextStyle(
+            color: isDark ? Colors.white : const Color(0xFF1A1B21),
+            fontSize: 16,
+            fontFamily: 'Work Sans',
+            fontWeight: FontWeight.w400,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Search models...',
+            hintStyle: TextStyle(
+              color: isDark ? Colors.white70 : const Color(0xFF6B7280),
+              fontSize: 16,
+              fontFamily: 'Work Sans',
+              fontWeight: FontWeight.w400,
+            ),
+            prefixIcon: Icon(Icons.search, color: isDark ? Colors.white70 : const Color(0xFF6B7280)),
+            border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 13.5),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shared row of selectable filter chips (difficulty or category).
+class _FilterChipsRow extends StatelessWidget {
+  const _FilterChipsRow({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    required this.isDark,
+    this.pill = false,
+  });
+
+  final List<String> options;
+  final String? selected;
+  final ValueChanged<String> onSelected;
+  final bool isDark;
+
+  /// Pill-shaped outline chips (categories) vs. filled/outline difficulty chips.
+  final bool pill;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: List.generate(options.length, (index) {
+          final label = options[index];
+          final isSelected = selected == label;
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index == options.length - 1 ? 0 : 8,
+            ),
+            child: GestureDetector(
+              onTap: () => onSelected(label),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: pill ? 6 : 8.5,
+                ),
+                decoration: ShapeDecoration(
+                  color: isSelected
+                      ? const Color(0xFF24389C)
+                      : Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(
+                      width: 1,
+                      color: isSelected
+                          ? Colors.transparent
+                          : (isDark ? const Color(0xFF555555) : const Color(0xFFC5C5D4)),
+                    ),
+                    borderRadius: BorderRadius.circular(pill ? 12 : 9999),
+                  ),
+                  shadows: isSelected
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x0C000000),
+                            blurRadius: 2,
+                            offset: Offset(0, 1),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.white : const Color(0xFF454652)),
+                    fontSize: 16,
+                    fontFamily: 'Work Sans',
+                    fontWeight: FontWeight.w400,
+                    height: 1.50,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+
+
 class _ModelGridCard extends StatelessWidget {
   const _ModelGridCard({required this.model});
 
@@ -505,14 +522,15 @@ class _ModelGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => _handleTap(context),
       child: Container(
         decoration: ShapeDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           shape: RoundedRectangleBorder(
-            side: const BorderSide(width: 1, color: Color(0xFFEDEEEF)),
+            side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0xFFEDEEEF)),
             borderRadius: BorderRadius.circular(12),
           ),
           shadows: const [
@@ -543,11 +561,11 @@ class _ModelGridCard extends StatelessWidget {
                     model.imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: const Color(0xFFEFEDF6),
+                      color: isDark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
                       alignment: Alignment.center,
-                      child: const Icon(
+                      child: Icon(
                         Icons.broken_image_outlined,
-                        color: Color(0xFF757684),
+                        color: isDark ? Colors.white70 : const Color(0xFF757684),
                       ),
                     ),
                   ),
@@ -628,15 +646,15 @@ class _ModelGridCard extends StatelessWidget {
                       model.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF011D86),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF24389C),
                         fontSize: 16,
                         fontFamily: 'Work Sans',
                         fontWeight: FontWeight.w400,
                         height: 1.50,
                       ),
                     ),
-                    Expanded(child: _ModelStatusArea(model: model)),
+                    Expanded(child: _ModelStatusArea(model: model, isDark: isDark)),
                   ],
                 ),
               ),
@@ -653,9 +671,10 @@ class _ModelGridCard extends StatelessWidget {
 /// Collection screen's "individual in-progress status bar" requirement
 /// (README §4).
 class _ModelStatusArea extends StatelessWidget {
-  const _ModelStatusArea({required this.model});
+  const _ModelStatusArea({required this.model, required this.isDark});
 
   final _CollectionModel model;
+  final bool isDark;
 
   @override
   Widget build(BuildContext context) {
@@ -676,8 +695,8 @@ class _ModelStatusArea extends StatelessWidget {
                 child: Text(
                   model.statusLabel,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF454652),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF454652),
                     fontSize: 11,
                     fontFamily: 'Work Sans',
                     fontWeight: FontWeight.w400,
@@ -698,8 +717,8 @@ class _ModelStatusArea extends StatelessWidget {
             children: [
               Text(
                 'Step ${model.currentStep} of ${model.totalSteps}',
-                style: const TextStyle(
-                  color: Color(0xFF011D86),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF24389C),
                   fontSize: 11,
                   fontFamily: 'Work Sans',
                   fontWeight: FontWeight.w600,
@@ -711,7 +730,7 @@ class _ModelStatusArea extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: model.progress,
                   minHeight: 6,
-                  backgroundColor: const Color(0xFFEFEDF6),
+                  backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
                   valueColor: const AlwaysStoppedAnimation<Color>(
                     Color(0xFFFDC003),
                   ),
@@ -727,18 +746,18 @@ class _ModelStatusArea extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             spacing: 4,
             children: [
-              const Icon(
+              Icon(
                 Icons.play_circle_outline,
                 size: 14,
-                color: Color(0xFF757684),
+                color: isDark ? Colors.white70 : const Color(0xFF757684),
               ),
               Flexible(
                 child: Text(
                   model.statusLabel,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
-                  style: const TextStyle(
-                    color: Color(0xFF757684),
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : const Color(0xFF757684),
                     fontSize: 11,
                     fontFamily: 'Work Sans',
                     fontWeight: FontWeight.w400,
@@ -761,9 +780,10 @@ enum _ModelStatus { completed, inProgress, notStarted }
 /// catalog endpoint — `UserModelProgress` is out of scope for the current
 /// API — so every card currently renders as "not started".
 class _CollectionModel {
-  _CollectionModel(this.model);
+  _CollectionModel(this.model, {this.modelProgress});
 
   final OrigamiModel model;
+  final ModelProgress? modelProgress;
 
   String get title => model.name;
   String get imageUrl => model.thumbnail;
@@ -772,11 +792,21 @@ class _CollectionModel {
   Color get difficultyBg => _difficultyColors(model.difficulty).bg;
   Color get difficultyFg => _difficultyColors(model.difficulty).fg;
 
-  _ModelStatus get status => _ModelStatus.notStarted;
-  String get statusLabel => 'Not started yet';
-  int? get currentStep => null;
-  int? get totalSteps => null;
-  double? get progress => null;
+  _ModelStatus get status {
+    if (modelProgress == null) return _ModelStatus.notStarted;
+    if (modelProgress!.completed) return _ModelStatus.completed;
+    return _ModelStatus.inProgress;
+  }
+  
+  String get statusLabel {
+    if (modelProgress == null) return 'Not started yet';
+    if (modelProgress!.completed) return 'Completed';
+    return 'In progress';
+  }
+  
+  int? get currentStep => modelProgress?.currentStep;
+  int? get totalSteps => modelProgress?.totalSteps;
+  double? get progress => modelProgress?.progress;
 
   OrigamiModel toOrigamiModel() => model;
 }

@@ -42,13 +42,21 @@ namespace Backend.Services
             int modelId,
             UpsertProgressRequestDto dto)
         {
-            var progress = await _repository.UpsertProgressAsync(
+            var result = await _repository.UpsertProgressAsync(
                 userId,
                 modelId,
                 dto.CurrentStep,
                 dto.AccumulatedTimeSeconds,
                 dto.Completed);
-            return progress is null ? null : ToProgressDto(progress);
+                
+            if (result.Progress is null) return null;
+            
+            var progressDto = ToProgressDto(result.Progress);
+            progressDto.ExpGained = result.ExpGained;
+            progressDto.NewExp = result.NewExp;
+            progressDto.NewLevel = result.NewLevel;
+            
+            return progressDto;
         }
 
         public Task<bool> RemoveProgressAsync(string userId, int modelId) =>

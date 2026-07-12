@@ -18,6 +18,7 @@ namespace Backend.Data
         public DbSet<Achievement> Achievements => Set<Achievement>();
         public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
         public DbSet<LevelDefinition> LevelDefinitions => Set<LevelDefinition>();
+        public DbSet<OtpCode> OtpCodes => Set<OtpCode>();
 
         protected override void OnModelCreating(ModelBuilder b)
         {
@@ -28,6 +29,7 @@ namespace Backend.Data
             b.Entity<FoldStep>().Property(s => s.FoldType).HasConversion<string>().HasMaxLength(15);
             b.Entity<Achievement>().Property(a => a.ConditionType).HasConversion<string>().HasMaxLength(30);
             b.Entity<OrigamiModel>().Property(m => m.RatingAvg).HasColumnType("decimal(3,2)");
+            b.Entity<OtpCode>().HasIndex(o => new { o.Email, o.Purpose, o.Code });
 
             // Steps: ordered & unique within a model; cascade from model
             b.Entity<FoldStep>().HasIndex(s => new { s.ModelId, s.StepOrder }).IsUnique();
@@ -92,13 +94,12 @@ namespace Backend.Data
 
             b.Entity<LevelDefinition>().HasData(
                 new LevelDefinition { Level = 1, RequiredExp = 0, RankTitle = "Crane Apprentice" },
-                new LevelDefinition { Level = 2, RequiredExp = 100, RankTitle = "Crane Apprentice" },
-                new LevelDefinition { Level = 3, RequiredExp = 250, RankTitle = "Crane Apprentice" },
-                new LevelDefinition { Level = 4, RequiredExp = 500, RankTitle = "Crane Apprentice" },
-                new LevelDefinition { Level = 5, RequiredExp = 800, RankTitle = "Paper Artisan" },
-                new LevelDefinition { Level = 6, RequiredExp = 1200, RankTitle = "Paper Artisan" });
-            // (placeholder thresholds — finalize per CLAUDE.md §13)
-
+                new LevelDefinition { Level = 2, RequiredExp = 20, RankTitle = "Crane Apprentice" },
+                new LevelDefinition { Level = 3, RequiredExp = 60, RankTitle = "Crane Apprentice" },
+                new LevelDefinition { Level = 4, RequiredExp = 130, RankTitle = "Crane Apprentice" },
+                new LevelDefinition { Level = 5, RequiredExp = 250, RankTitle = "Paper Artisan" },
+                new LevelDefinition { Level = 6, RequiredExp = 450, RankTitle = "Paper Artisan" });
+      
             b.Entity<Achievement>().HasData(
                 new Achievement
                 {

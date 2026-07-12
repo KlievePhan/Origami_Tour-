@@ -37,13 +37,18 @@ class ModelDetailsScreen extends StatelessWidget {
     final totalSteps = model.steps.length;
     final inProgress = (resumeStep ?? 1) > 1;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _Header(model: model),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                _Header(model: model),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -56,8 +61,8 @@ class ModelDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     model.name,
-                    style: const TextStyle(
-                      color: Color(0xFF24389C),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 28,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w600,
@@ -69,8 +74,8 @@ class ModelDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     model.description,
-                    style: const TextStyle(
-                      color: Color(0xFF454652),
+                    style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF454652),
                       fontSize: 14,
                       fontFamily: 'Work Sans',
                       fontWeight: FontWeight.w400,
@@ -89,7 +94,9 @@ class ModelDetailsScreen extends StatelessWidget {
                   : 'Start Folding',
               onPressed: () => _startFolding(context),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -107,12 +114,14 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFavorite = context.watch<BookmarkProvider>().isFavorite(model.id);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8F9FA),
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x0C000000),
             blurRadius: 2,
@@ -125,13 +134,13 @@ class _Header extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF454652)),
+            icon: Icon(Icons.arrow_back, color: isDark ? Colors.white70 : const Color(0xFF454652)),
             tooltip: 'Back',
           ),
-          const Text(
+          Text(
             'Model Details',
             style: TextStyle(
-              color: Color(0xFF011D86),
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 18,
               fontFamily: 'Plus Jakarta Sans',
               fontWeight: FontWeight.w700,
@@ -143,7 +152,7 @@ class _Header extends StatelessWidget {
                 context.read<BookmarkProvider>().toggleFavorite(model),
             icon: Icon(
               isFavorite ? Icons.bookmark : Icons.bookmark_add_outlined,
-              color: const Color(0xFF24389C),
+              color: Theme.of(context).colorScheme.primary,
             ),
             tooltip: isFavorite ? 'Remove bookmark' : 'Bookmark',
           ),
@@ -166,7 +175,7 @@ class _HeroImage extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 16 / 9,
         child: Container(
-          color: const Color(0xFFEFEDF6),
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
           child: Image.network(imageUrl, fit: BoxFit.cover),
         ),
       ),
@@ -237,11 +246,25 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    // When using default colors, adapt for dark mode
+    final resolvedBackground = background == const Color(0xFFF4F2FC) 
+        ? (isDark ? const Color(0xFF1E1E1E) : background)
+        : background;
+        
+    final resolvedForeground = foreground == const Color(0xFF454652)
+        ? (isDark ? Colors.white70 : foreground)
+        : foreground;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: ShapeDecoration(
-        color: background,
+        color: resolvedBackground,
         shape: RoundedRectangleBorder(
+          side: isDark && background == const Color(0xFFF4F2FC) 
+              ? const BorderSide(color: Color(0xFF333333)) 
+              : BorderSide.none,
           borderRadius: BorderRadius.circular(9999),
         ),
       ),
@@ -249,11 +272,11 @@ class _StatChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 4,
         children: [
-          Icon(icon, size: 14, color: foreground),
+          Icon(icon, size: 14, color: resolvedForeground),
           Text(
             label,
             style: TextStyle(
-              color: foreground,
+              color: resolvedForeground,
               fontSize: 12,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w600,
@@ -274,13 +297,15 @@ class _RatingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: ShapeDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0xFFC5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0xFFC5C5D4)),
           borderRadius: BorderRadius.circular(12),
         ),
       ),
@@ -290,8 +315,8 @@ class _RatingCard extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             model.ratingAvg.toStringAsFixed(1),
-            style: const TextStyle(
-              color: Color(0xFF011D86),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 16,
               fontFamily: 'Plus Jakarta Sans',
               fontWeight: FontWeight.w700,
@@ -300,8 +325,8 @@ class _RatingCard extends StatelessWidget {
           ),
           Text(
             ' (${model.ratingCount} ratings)',
-            style: const TextStyle(
-              color: Color(0xFF454652),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 12,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w400,
@@ -311,8 +336,8 @@ class _RatingCard extends StatelessWidget {
           const Spacer(),
           Text(
             '${model.completionCount} completions',
-            style: const TextStyle(
-              color: Color(0xFF454652),
+            style: TextStyle(
+              color: isDark ? Colors.white70 : const Color(0xFF454652),
               fontSize: 12,
               fontFamily: 'Work Sans',
               fontWeight: FontWeight.w400,
@@ -334,20 +359,22 @@ class _BottomAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       decoration: ShapeDecoration(
-        color: const Color(0xFFF4F2FC),
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4F2FC),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x19C5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x19C5C5D4)),
         ),
       ),
       child: FilledButton.icon(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(64),
-          backgroundColor: const Color(0xFF011D86),
+          backgroundColor: Theme.of(context).colorScheme.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

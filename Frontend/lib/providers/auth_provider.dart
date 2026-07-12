@@ -33,19 +33,65 @@ class AuthProvider extends ChangeNotifier {
     return _run(() => _repository.login(email: email, password: password));
   }
 
-  /// Returns an error message on failure, or `null` on success.
-  Future<String?> register({
+  Future<String?> googleLogin(String idToken) {
+    return _run(() => _repository.googleLogin(idToken));
+  }
+
+  Future<String?> sendRegisterOtp(String email) async {
+    try {
+      await _repository.sendRegisterOtp(email);
+      return null;
+    } on AuthException catch (e) {
+      return e.toString();
+    } catch (e) {
+      return 'An unexpected error occurred.';
+    }
+  }
+
+  Future<String?> verifyRegisterOtp({
     required String displayName,
     required String email,
     required String password,
+    required String otp,
   }) {
     return _run(
-      () => _repository.register(
+      () => _repository.verifyRegisterOtp(
         displayName: displayName,
         email: email,
         password: password,
+        otp: otp,
       ),
     );
+  }
+
+  Future<String?> sendRecoveryOtp(String email) async {
+    try {
+      await _repository.sendRecoveryOtp(email);
+      return null;
+    } on AuthException catch (e) {
+      return e.toString();
+    } catch (e) {
+      return 'An unexpected error occurred.';
+    }
+  }
+
+  Future<String?> verifyRecoveryOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      await _repository.verifyRecoveryOtp(
+        email: email,
+        otp: otp,
+        newPassword: newPassword,
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.toString();
+    } catch (e) {
+      return 'An unexpected error occurred.';
+    }
   }
 
   Future<String?> _run(Future<AuthSession> Function() action) async {
@@ -65,6 +111,10 @@ class AuthProvider extends ChangeNotifier {
       status = AuthStatus.unauthenticated;
       notifyListeners();
       return e.toString();
+    } catch (e) {
+      status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return 'An unexpected error occurred.';
     }
   }
 

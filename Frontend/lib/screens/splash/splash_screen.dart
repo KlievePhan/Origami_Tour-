@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bookmark_provider.dart';
 import '../auth/login_screen.dart';
-import '../shell/shell_screen.dart';
+import '../collection/collection_screen.dart';
 
 /// Splash screen shown while the app boots.
 ///
@@ -71,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen>
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) =>
-            isAuthenticated ? const ShellScreen() : const LoginScreen(),
+            isAuthenticated ? const CollectionScreen() : const LoginScreen(),
       ),
     );
   }

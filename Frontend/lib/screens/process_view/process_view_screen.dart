@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,14 +38,38 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
   FoldStep get _step => widget.model.steps[_currentStep - 1];
 
   double get _progress => _currentStep / _totalSteps;
+  
+  final Stopwatch _stopwatch = Stopwatch();
+  Timer? _timer;
+  
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch.start();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+  
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _stopwatch.stop();
+    super.dispose();
+  }
 
   /// Persists [_currentStep] as this model's resume point
   /// (`PUT /api/bookmarks/progress/{modelId}`).
-  Future<void> _saveStep({bool silent = false}) async {
-    await context.read<BookmarkProvider>().saveProgress(
+  Future<void> _saveStep({bool silent = false, bool completed = false}) async {
+    final progress = await context.read<BookmarkProvider>().saveProgress(
       widget.model,
       _currentStep,
+      completed: completed,
+      accumulatedTimeSeconds: _stopwatch.elapsed.inSeconds,
     );
+    
+    // If we just completed, return early so _finishTutorial can handle navigation
+    if (completed) return;
     if (!silent && mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -75,13 +100,39 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
 
   /// Replaces this screen with [FinishScreen] once the last step is complete,
   /// and drops the model out of the "In Progress" list.
-  void _finishTutorial() {
+  void _finishTutorial() async {
+    if (_stopwatch.elapsed.inSeconds < 60) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('You cannot finish in less than 1 minute!')),
+        );
+      return;
+    }
+    
+    // Stop timer while finishing
+    _timer?.cancel();
+    _stopwatch.stop();
+    
+    // Save as completed and get the returned EXP data
+    final progress = await context.read<BookmarkProvider>().saveProgress(
+      widget.model,
+      _currentStep,
+      completed: true,
+      accumulatedTimeSeconds: _stopwatch.elapsed.inSeconds,
+    );
+    
+    if (!mounted) return;
+
     context.read<BookmarkProvider>().removeProgress(widget.model);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => FinishScreen(
           modelTitle: widget.model.name,
           modelThumbnailUrl: widget.model.thumbnail,
+          expGained: progress?.expGained ?? 0,
+          currentExp: progress?.newExp ?? 0,
+          elapsedSeconds: _stopwatch.elapsed.inSeconds,
         ),
       ),
     );
@@ -120,19 +171,25 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _Header(
-              modelTitle: widget.model.name,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              children: [
+                _Header(
+                  modelTitle: widget.model.name,
               currentStep: _currentStep,
               totalSteps: _totalSteps,
               isBookmarked: context.watch<BookmarkProvider>().isFavorite(
                 widget.model.id,
               ),
+              elapsedSeconds: _stopwatch.elapsed.inSeconds,
               onCancel: _handleCancel,
               onToggleBookmark: _toggleBookmark,
             ),
@@ -144,8 +201,8 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
                   Text(
                     _step.foldType.label,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF1A1B21),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF1A1B21),
                       fontSize: 28,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w600,
@@ -156,8 +213,8 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
                   Text(
                     _step.instruction,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF454652),
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : const Color(0xFF454652),
                       fontSize: 16,
                       fontFamily: 'Work Sans',
                       fontWeight: FontWeight.w400,
@@ -185,6 +242,8 @@ class _ProcessViewScreenState extends State<ProcessViewScreen> {
               onNext: _goToNext,
             ),
           ],
+        ),
+          ),
         ),
       ),
     );
@@ -220,6 +279,7 @@ class _Header extends StatelessWidget {
     required this.currentStep,
     required this.totalSteps,
     required this.isBookmarked,
+    required this.elapsedSeconds,
     required this.onCancel,
     required this.onToggleBookmark,
   });
@@ -228,17 +288,20 @@ class _Header extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
   final bool isBookmarked;
+  final int elapsedSeconds;
   final VoidCallback onCancel;
   final VoidCallback onToggleBookmark;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8F9FA),
-        boxShadow: [
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
+        boxShadow: const [
           BoxShadow(
             color: Color(0x0C000000),
             blurRadius: 2,
@@ -249,41 +312,56 @@ class _Header extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            spacing: 16,
-            children: [
-              IconButton(
-                onPressed: onCancel,
-                icon: const Icon(Icons.close, color: Color(0xFF454652)),
-                tooltip: 'Cancel',
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tutorial',
-                    style: TextStyle(
-                      color: Color(0xFF454652),
-                      fontSize: 11,
-                      fontFamily: 'Work Sans',
-                      fontWeight: FontWeight.w500,
-                      height: 1.45,
-                      letterSpacing: 0.50,
-                    ),
+          Expanded(
+            child: Row(
+              spacing: 16,
+              children: [
+                IconButton(
+                  onPressed: onCancel,
+                  icon: Icon(Icons.close, color: isDark ? Colors.white70 : const Color(0xFF454652)),
+                  tooltip: 'Cancel',
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tutorial',
+                        style: TextStyle(
+                          color: isDark ? Colors.white70 : const Color(0xFF454652),
+                          fontSize: 11,
+                          fontFamily: 'Work Sans',
+                          fontWeight: FontWeight.w500,
+                          height: 1.45,
+                          letterSpacing: 0.50,
+                        ),
+                      ),
+                      Text(
+                        modelTitle,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
+                          fontSize: 22,
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: FontWeight.w700,
+                          height: 1.27,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    modelTitle,
-                    style: const TextStyle(
-                      color: Color(0xFF011D86),
-                      fontSize: 22,
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontWeight: FontWeight.w700,
-                      height: 1.27,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${(elapsedSeconds ~/ 60).toString().padLeft(2, '0')}:${(elapsedSeconds % 60).toString().padLeft(2, '0')}',
+            style: TextStyle(
+              color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
+              fontSize: 16,
+              fontFamily: 'Plus Jakarta Sans',
+              fontWeight: FontWeight.w700,
+            ),
           ),
           Row(
             spacing: 8,
@@ -292,7 +370,7 @@ class _Header extends StatelessWidget {
                 onPressed: onToggleBookmark,
                 icon: Icon(
                   isBookmarked ? Icons.bookmark : Icons.bookmark_add_outlined,
-                  color: const Color(0xFF011D86),
+                  color: isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86),
                 ),
                 tooltip: isBookmarked
                     ? 'Remove bookmark'
@@ -348,14 +426,16 @@ class _DiagramCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       height: 358,
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x4CC5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x4CC5C5D4)),
           borderRadius: BorderRadius.circular(12),
         ),
         shadows: const [
@@ -398,7 +478,7 @@ class _DiagramCard extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: ShapeDecoration(
-                color: const Color(0xCCE9E7F0),
+                color: isDark ? const Color(0xCC333333) : const Color(0xCCE9E7F0),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(9999),
                 ),
@@ -406,17 +486,17 @@ class _DiagramCard extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 spacing: 8,
-                children: const [
+                children: [
                   Icon(
                     Icons.touch_app_outlined,
                     size: 16,
-                    color: Color(0xFF454652),
+                    color: isDark ? Colors.white70 : const Color(0xFF454652),
                   ),
                   Text(
                     'Double tap or pinch to zoom',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF454652),
+                      color: isDark ? Colors.white70 : const Color(0xFF454652),
                       fontSize: 14,
                       fontFamily: 'Work Sans',
                       fontWeight: FontWeight.w500,
@@ -552,23 +632,25 @@ class _TipCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: ShapeDecoration(
-        color: const Color(0xFFB0EFE2),
+        color: isDark ? const Color(0xFF004D40) : const Color(0xFFB0EFE2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Row(
         spacing: 16,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb_outline, color: Color(0xFF00201C)),
+          Icon(Icons.lightbulb_outline, color: isDark ? const Color(0xFFB0EFE2) : const Color(0xFF00201C)),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: Color(0xFF00201C),
+              style: TextStyle(
+                color: isDark ? const Color(0xFFB0EFE2) : const Color(0xFF00201C),
                 fontSize: 14,
                 fontFamily: 'Work Sans',
                 fontWeight: FontWeight.w400,
@@ -600,13 +682,16 @@ class _BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryActionColor = isDark ? const Color(0xFFBAC3FF) : const Color(0xFF011D86);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       decoration: ShapeDecoration(
-        color: const Color(0xFFF4F2FC),
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF4F2FC),
         shape: RoundedRectangleBorder(
-          side: const BorderSide(width: 1, color: Color(0x19C5C5D4)),
+          side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x19C5C5D4)),
         ),
       ),
       child: Row(
@@ -617,16 +702,16 @@ class _BottomNavBar extends StatelessWidget {
               onPressed: isFirstStep ? null : onPrevious,
               style: OutlinedButton.styleFrom(
                 minimumSize: const Size.fromHeight(64),
-                side: const BorderSide(width: 2, color: Color(0xFF011D86)),
+                side: BorderSide(width: 2, color: primaryActionColor),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: const Icon(Icons.arrow_back, color: Color(0xFF011D86)),
-              label: const Text(
+              icon: Icon(Icons.arrow_back, color: primaryActionColor),
+              label: Text(
                 'Previous',
                 style: TextStyle(
-                  color: Color(0xFF011D86),
+                  color: primaryActionColor,
                   fontSize: 22,
                   fontFamily: 'Plus Jakarta Sans',
                   fontWeight: FontWeight.w500,
@@ -640,7 +725,7 @@ class _BottomNavBar extends StatelessWidget {
               onPressed: onNext,
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(64),
-                backgroundColor: const Color(0xFF011D86),
+                backgroundColor: isDark ? Theme.of(context).colorScheme.primary : const Color(0xFF011D86),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

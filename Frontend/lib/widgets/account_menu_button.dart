@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/bookmark_provider.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/settings/settings_screen.dart';
 
 /// Wraps an avatar with a dropdown menu offering "Settings" and "Logout"
 /// (CLAUDE.md §8: tapping the avatar opens an account menu overlay).
@@ -46,11 +47,9 @@ class AccountMenuButton extends StatelessWidget {
   }
 
   void _openSettings(BuildContext context) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Settings is not wired up yet.')),
-      );
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+    );
   }
 
   @override

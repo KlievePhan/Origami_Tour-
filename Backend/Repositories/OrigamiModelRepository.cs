@@ -20,6 +20,7 @@ namespace Backend.Repositories
             var models = _db.Models
                 .Include(m => m.Steps.OrderBy(s => s.StepOrder))
                 .Include(m => m.ModelCategories).ThenInclude(mc => mc.Category)
+                .AsSplitQuery()
                 .AsQueryable();
 
             if (query.Difficulty.HasValue)
@@ -38,6 +39,7 @@ namespace Backend.Repositories
             return await _db.Models
                 .Include(m => m.Steps.OrderBy(s => s.StepOrder))
                 .Include(m => m.ModelCategories).ThenInclude(mc => mc.Category)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == id);
         }
     }

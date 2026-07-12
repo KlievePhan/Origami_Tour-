@@ -119,6 +119,17 @@ CREATE TABLE AspNetUserTokens (
 -- Domain tables
 -- ----------------------------------------------------------------------------
 
+CREATE TABLE OtpCodes (
+    Id          INT IDENTITY(1,1) NOT NULL,
+    Email       NVARCHAR(MAX) NOT NULL,
+    Code        NVARCHAR(6)   NOT NULL,
+    Purpose     NVARCHAR(20)  NOT NULL,
+    CreatedAt   DATETIME2     NOT NULL,
+    ExpiresAt   DATETIME2     NOT NULL,
+    CONSTRAINT PK_OtpCodes PRIMARY KEY (Id)
+);
+CREATE INDEX IX_OtpCodes_Email_Purpose_Code ON OtpCodes (Email, Purpose, Code);
+
 CREATE TABLE LevelDefinitions (
     Level       INT IDENTITY(1,1) NOT NULL,
     RequiredExp INT           NOT NULL,
@@ -265,11 +276,11 @@ SET IDENTITY_INSERT Categories OFF;
 SET IDENTITY_INSERT LevelDefinitions ON;
 INSERT INTO LevelDefinitions (Level, RequiredExp, RankTitle) VALUES
     (1, 0,    N'Crane Apprentice'),
-    (2, 100,  N'Crane Apprentice'),
-    (3, 250,  N'Crane Apprentice'),
-    (4, 500,  N'Crane Apprentice'),
-    (5, 800,  N'Paper Artisan'),
-    (6, 1200, N'Paper Artisan');
+    (2, 20,   N'Crane Apprentice'),
+    (3, 60,   N'Crane Apprentice'),
+    (4, 130,  N'Crane Apprentice'),
+    (5, 250,  N'Paper Artisan'),
+    (6, 450,  N'Paper Artisan');
 SET IDENTITY_INSERT LevelDefinitions OFF;
 
 SET IDENTITY_INSERT Achievements ON;

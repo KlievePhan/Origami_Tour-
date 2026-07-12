@@ -40,19 +40,41 @@ class AuthRepository {
   final AuthRemoteSource _remote;
   final FlutterSecureStorage _storage;
 
-  Future<AuthSession> register({
+  Future<void> sendRegisterOtp(String email) {
+    return _remote.sendRegisterOtp(email);
+  }
+
+  Future<AuthSession> verifyRegisterOtp({
     required String displayName,
     required String email,
     required String password,
+    required String otp,
   }) async {
-    final json = await _remote.register(
+    final json = await _remote.verifyRegisterOtp(
       displayName: displayName,
       email: email,
       password: password,
+      otp: otp,
     );
     final session = AuthSession.fromJson(json);
     await _storage.write(key: _tokenKey, value: session.token);
     return session;
+  }
+
+  Future<void> sendRecoveryOtp(String email) {
+    return _remote.sendRecoveryOtp(email);
+  }
+
+  Future<void> verifyRecoveryOtp({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) {
+    return _remote.verifyRecoveryOtp(
+      email: email,
+      otp: otp,
+      newPassword: newPassword,
+    );
   }
 
   Future<AuthSession> login({
@@ -60,6 +82,13 @@ class AuthRepository {
     required String password,
   }) async {
     final json = await _remote.login(email: email, password: password);
+    final session = AuthSession.fromJson(json);
+    await _storage.write(key: _tokenKey, value: session.token);
+    return session;
+  }
+
+  Future<AuthSession> googleLogin(String idToken) async {
+    final json = await _remote.googleLogin(idToken);
     final session = AuthSession.fromJson(json);
     await _storage.write(key: _tokenKey, value: session.token);
     return session;

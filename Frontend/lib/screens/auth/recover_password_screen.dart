@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/auth_provider.dart';
 import 'package:flutter/services.dart';
 
 /// Recover Password screen (`/recover`).
@@ -37,7 +40,6 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
   int _cooldownSeconds = 0;
   bool _otpSent = false;
   bool _isSendingOtp = false;
-  bool _isVerifying = false;
   String? _otpError;
 
   @override
@@ -79,17 +81,22 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
   Future<void> _sendOtp() async {
     if (!(_emailFormKey.currentState?.validate() ?? false)) return;
     setState(() => _isSendingOtp = true);
-    // TODO(agent): wire to AuthProvider.sendOtp (prov-auth is not_started yet).
-    await Future<void>.delayed(const Duration(milliseconds: 400));
+    
+    final email = _emailController.text.trim();
+    final error = await context.read<AuthProvider>().sendRecoveryOtp(email);
+    
     if (!mounted) return;
     setState(() {
       _isSendingOtp = false;
-      _otpSent = true;
-      _otpError = null;
+      _otpSent = error == null;
+      _otpError = error;
     });
-    _startCooldown();
-    _notifyPending('Sending the verification code');
-    FocusScope.of(context).requestFocus(_otpFocusNodes.first);
+
+    if (error == null) {
+      _startCooldown();
+      _notifyPending('Verification code sent');
+      FocusScope.of(context).requestFocus(_otpFocusNodes.first);
+    }
   }
 
   Future<void> _verifyOtp() async {
@@ -102,17 +109,86 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
       setState(() => _otpError = 'Enter the full $_otpLength-digit code');
       return;
     }
-    setState(() {
-      _otpError = null;
-      _isVerifying = true;
-    });
-    // TODO(agent): wire to AuthProvider.verifyOtp (prov-auth is not_started
-    // yet); on success this screen should switch to the "set new password"
-    // step per CLAUDE.md §9-A (design not yet provided).
-    await Future<void>.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
-    setState(() => _isVerifying = false);
-    _notifyPending('Verifying the code');
+
+    _showNewPasswordDialog(code);
+  }
+
+  void _showNewPasswordDialog(String otp) {
+    final newPasswordController = TextEditingController();
+    bool isVerifyingLocal = false;
+    String? localError;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Reset Password'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Please enter your new password.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: true,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      errorText: localError,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isVerifyingLocal ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isVerifyingLocal
+                      ? null
+                      : () async {
+                          final newPassword = newPasswordController.text;
+                          if (newPassword.isEmpty) return;
+
+                          setDialogState(() {
+                            isVerifyingLocal = true;
+                            localError = null;
+                          });
+
+                          final error = await context.read<AuthProvider>().verifyRecoveryOtp(
+                                email: _emailController.text.trim(),
+                                otp: otp,
+                                newPassword: newPassword,
+                              );
+
+                          if (!context.mounted) return;
+
+                          if (error == null) {
+                            Navigator.of(context).pop(); // Close dialog
+                            Navigator.of(context).maybePop(); // Go back to login
+                            ScaffoldMessenger.of(context)
+                              ..hideCurrentSnackBar()
+                              ..showSnackBar(const SnackBar(content: Text('Password reset successfully!')));
+                          } else {
+                            setDialogState(() {
+                              isVerifyingLocal = false;
+                              localError = error;
+                            });
+                          }
+                        },
+                  child: isVerifyingLocal
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Reset'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _onOtpDigitChanged(int index, String value) {
@@ -471,7 +547,7 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: _isVerifying ? null : _verifyOtp,
+              onPressed: _verifyOtp,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF011D86),
                 foregroundColor: Colors.white,
@@ -481,16 +557,7 @@ class _RecoverPasswordScreenState extends State<RecoverPasswordScreen> {
                 ),
                 elevation: 3,
               ),
-              child: _isVerifying
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
+              child: const Text(
                       'Verify',
                       textAlign: TextAlign.center,
                       style: const TextStyle(

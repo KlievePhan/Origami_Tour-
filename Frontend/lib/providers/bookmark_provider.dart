@@ -76,28 +76,32 @@ class BookmarkProvider extends ChangeNotifier {
   }
 
   /// Persists the current fold step as the resume point for [model].
-  Future<void> saveProgress(
+  Future<ModelProgress?> saveProgress(
     OrigamiModel model,
     int currentStep, {
     bool completed = false,
+    int? accumulatedTimeSeconds,
   }) async {
     final modelId = int.tryParse(model.id);
-    if (modelId == null) return;
+    if (modelId == null) return null;
 
     try {
       final progress = await _repository.upsertProgress(
         modelId,
         currentStep: currentStep,
         completed: completed,
+        accumulatedTimeSeconds: accumulatedTimeSeconds,
       );
       inProgress = [
         ...inProgress.where((p) => p.model.id != model.id),
         if (!completed) progress,
       ];
       notifyListeners();
+      return progress;
     } catch (_) {
       // Best-effort: progress is also held locally by ProcessViewScreen, so
       // a failed save here doesn't block the user from continuing.
+      return null;
     }
   }
 

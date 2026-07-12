@@ -46,9 +46,10 @@ class _BookmarkScreenState extends State<BookmarkScreen>
   @override
   Widget build(BuildContext context) {
     final bookmarks = context.watch<BookmarkProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -62,9 +63,14 @@ class _BookmarkScreenState extends State<BookmarkScreen>
               ),
             ),
             Expanded(
-              child: _Body(
-                bookmarks: bookmarks,
-                tabController: _tabController,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: _Body(
+                    bookmarks: bookmarks,
+                    tabController: _tabController,
+                  ),
+                ),
               ),
             ),
           ],
@@ -129,11 +135,13 @@ class _SegmentedTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(4),
       decoration: ShapeDecoration(
-        color: const Color(0xFFEFEDF6),
+        color: isDark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         shadows: const [
           BoxShadow(
@@ -160,7 +168,7 @@ class _SegmentedTabBar extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: ShapeDecoration(
-                      color: selected ? Colors.white : Colors.transparent,
+                      color: selected ? (isDark ? const Color(0xFF1E1E1E) : Colors.white) : Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -179,8 +187,8 @@ class _SegmentedTabBar extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: selected
-                            ? const Color(0xFF011D86)
-                            : const Color(0xFF454652),
+                            ? (isDark ? const Color(0xFFBAC3FF) : Theme.of(context).colorScheme.primary)
+                            : (isDark ? Colors.white70 : const Color(0xFF454652)),
                         fontSize: 14,
                         fontFamily: 'Work Sans',
                         fontWeight: FontWeight.w500,
@@ -206,11 +214,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Text(
         message,
-        style: const TextStyle(
-          color: Color(0xFF454652),
+        style: TextStyle(
+          color: isDark ? Colors.white70 : const Color(0xFF454652),
           fontSize: 14,
           fontFamily: 'Work Sans',
         ),
@@ -304,6 +314,8 @@ class _BookmarkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: () => Navigator.of(context).push(
@@ -318,9 +330,9 @@ class _BookmarkCard extends StatelessWidget {
         width: double.infinity,
         clipBehavior: Clip.antiAlias,
         decoration: ShapeDecoration(
-          color: const Color(0xFFF8F9FA),
+          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF8F9FA),
           shape: RoundedRectangleBorder(
-            side: const BorderSide(width: 1, color: Color(0x4CC5C5D4)),
+            side: BorderSide(width: 1, color: isDark ? const Color(0xFF333333) : const Color(0x4CC5C5D4)),
             borderRadius: BorderRadius.circular(12),
           ),
           shadows: const [
@@ -350,8 +362,8 @@ class _BookmarkCard extends StatelessWidget {
                 children: [
                   Text(
                     model.name,
-                    style: const TextStyle(
-                      color: Color(0xFF011D86),
+                    style: TextStyle(
+                      color: isDark ? const Color(0xFFBAC3FF) : Theme.of(context).colorScheme.primary,
                       fontSize: 16,
                       fontFamily: 'Plus Jakarta Sans',
                       fontWeight: FontWeight.w400,
@@ -393,6 +405,8 @@ class _CardHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _difficultyColors(model.difficulty);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return SizedBox(
       width: double.infinity,
       height: 192,
@@ -400,9 +414,9 @@ class _CardHero extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Container(
-              color: const Color(0xFFEFEDF6),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
                 image: DecorationImage(
                   image: NetworkImage(
                     model.heroUrl.isNotEmpty ? model.heroUrl : model.thumbnail,
@@ -418,7 +432,7 @@ class _CardHero extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: ShapeDecoration(
-                color: Colors.white.withValues(alpha: 0.90),
+                color: isDark ? const Color(0xE6333333) : Colors.white.withValues(alpha: 0.90),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(9999),
                 ),
@@ -430,10 +444,10 @@ class _CardHero extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.favorite,
                 size: 16,
-                color: Color(0xFF011D86),
+                color: isDark ? const Color(0xFFBAC3FF) : Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -483,15 +497,17 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       spacing: 4,
       children: [
-        Icon(icon, size: 14, color: const Color(0xFF454652)),
+        Icon(icon, size: 14, color: isDark ? Colors.white70 : const Color(0xFF454652)),
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF454652),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : const Color(0xFF454652),
             fontSize: 11,
             fontFamily: 'Work Sans',
             fontWeight: FontWeight.w500,
@@ -514,6 +530,8 @@ class _ProgressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       spacing: 6,
@@ -523,8 +541,8 @@ class _ProgressSection extends StatelessWidget {
           children: [
             Text(
               'Step ${item.currentStep} of ${item.totalSteps}',
-              style: const TextStyle(
-                color: Color(0xFF011D86),
+              style: TextStyle(
+                color: isDark ? const Color(0xFFBAC3FF) : Theme.of(context).colorScheme.primary,
                 fontSize: 12,
                 fontFamily: 'Work Sans',
                 fontWeight: FontWeight.w600,
@@ -533,8 +551,8 @@ class _ProgressSection extends StatelessWidget {
             ),
             Text(
               '${item.currentStep}/${item.totalSteps}',
-              style: const TextStyle(
-                color: Color(0xFF454652),
+              style: TextStyle(
+                color: isDark ? Colors.white70 : const Color(0xFF454652),
                 fontSize: 12,
                 fontFamily: 'Work Sans',
                 fontWeight: FontWeight.w500,
@@ -548,14 +566,14 @@ class _ProgressSection extends StatelessWidget {
           child: LinearProgressIndicator(
             value: item.progress,
             minHeight: 8,
-            backgroundColor: const Color(0xFFEFEDF6),
+            backgroundColor: isDark ? const Color(0xFF333333) : const Color(0xFFEFEDF6),
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFDC003)),
           ),
         ),
         Text(
           _lastFoldedLabel(item.lastSessionDate),
-          style: const TextStyle(
-            color: Color(0xFF454652),
+          style: TextStyle(
+            color: isDark ? Colors.white70 : const Color(0xFF454652),
             fontSize: 11,
             fontFamily: 'Work Sans',
             fontWeight: FontWeight.w500,

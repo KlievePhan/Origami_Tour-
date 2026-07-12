@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.Controllers
 {
-    /// <summary>Registration, login, and the current user's profile.</summary>
     [ApiController]
     [Route("api/auth")]
     public class AuthController : ControllerBase
@@ -18,10 +17,21 @@ namespace Backend.Controllers
             _authService = authService;
         }
 
-        [HttpPost("register")]
-        public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto dto)
+        [HttpPost("register/send-otp")]
+        public async Task<IActionResult> SendRegisterOtp(EmailRequestDto dto)
         {
-            var (success, result, errors) = await _authService.RegisterAsync(dto);
+            var (success, errors) = await _authService.SendRegisterOtpAsync(dto.Email);
+            if (!success)
+            {
+                return BadRequest(new { errors });
+            }
+            return Ok();
+        }
+
+        [HttpPost("register/verify")]
+        public async Task<ActionResult<AuthResponseDto>> RegisterVerify(VerifyRegisterDto dto)
+        {
+            var (success, result, errors) = await _authService.RegisterWithOtpAsync(dto.RegisterDto, dto.Otp);
             if (!success)
             {
                 return BadRequest(new { errors });
@@ -38,6 +48,39 @@ namespace Backend.Controllers
                 return Unauthorized(new { errors = new[] { "Incorrect email or password." } });
             }
             return Ok(result);
+        }
+
+        [HttpPost("google-login")]
+        public async Task<ActionResult<AuthResponseDto>> GoogleLogin(GoogleLoginDto dto)
+        {
+            var (success, result, errors) = await _authService.GoogleLoginAsync(dto.IdToken);
+            if (!success)
+            {
+                return BadRequest(new { errors });
+            }
+            return Ok(result);
+        }
+
+        [HttpPost("recover/send-otp")]
+        public async Task<IActionResult> SendRecoveryOtp(EmailRequestDto dto)
+        {
+            var (success, errors) = await _authService.SendRecoveryOtpAsync(dto.Email);
+            if (!success)
+            {
+                return BadRequest(new { errors });
+            }
+            return Ok();
+        }
+
+        [HttpPost("recover/verify")]
+        public async Task<IActionResult> RecoverVerify(ResetPasswordDto dto)
+        {
+            var (success, errors) = await _authService.ResetPasswordWithOtpAsync(dto.Email, dto.Otp, dto.NewPassword);
+            if (!success)
+            {
+                return BadRequest(new { errors });
+            }
+            return Ok();
         }
 
         [Authorize]
