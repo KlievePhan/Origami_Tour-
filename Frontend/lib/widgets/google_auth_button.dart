@@ -23,7 +23,7 @@ class _GoogleAuthButtonState extends State<GoogleAuthButton> {
     setState(() => _isLoading = true);
     
     try {
-      final webClientId = '85256281013-to8dtekknp8s54td0kam44n0rvqvkeg4.apps.googleusercontent.com';
+      final webClientId = '312065515197-nmo8ilbslcetb4lj2b6gi5obulos4bi3.apps.googleusercontent.com';
       await GoogleSignIn.instance.initialize(
         clientId: kIsWeb || Platform.isIOS ? webClientId : null,
         serverClientId: webClientId,
@@ -57,14 +57,33 @@ class _GoogleAuthButtonState extends State<GoogleAuthButton> {
           e.code == GoogleSignInExceptionCode.interrupted) {
         return;
       }
+      if (e.code == GoogleSignInExceptionCode.unknownError || e.code.name.toLowerCase().contains('unknown')) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Google Login error: Missing SHA-1 fingerprint (or wrong Client ID). Please use Email login for testing.'),
+            duration: Duration(seconds: 4),
+          ));
+        return;
+      }
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text('Google Sign-In failed: ${e.code}')));
-    } catch (e) {
+    } on Exception catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Google Sign-In failed: $e')));
+      final errorStr = e.toString();
+      if (errorStr.contains('ApiException: 10') || errorStr.contains('unknown')) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Google Login error: Missing SHA-1 fingerprint. Please use Email login for testing.'),
+            duration: Duration(seconds: 4),
+          ));
+      } else {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('Google Sign-In failed: $e')));
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
